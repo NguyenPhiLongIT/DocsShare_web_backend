@@ -17,7 +17,6 @@ public class DocumentResponse {
     private Long id;
     private String title;
     private String description;
-    private String typeFile;
     private String filePath;
     private Double price;
     private String moderationStatus;

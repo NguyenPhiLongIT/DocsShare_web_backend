@@ -1,18 +1,11 @@
 package com.docsshare_web_backend.documents.models;
 
-import com.docsshare_web_backend.documents.enums.DocumentTypeFile;
 import com.docsshare_web_backend.users.models.User;
-
-import io.swagger.v3.core.util.Json;
-
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
-
-import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -31,9 +24,6 @@ public class Document {
     private String title;
     private String description;
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private DocumentTypeFile typeFile;
-    @Column(nullable = false)
     private String filePath;
     private Double price;
     @Column(nullable = false)
@@ -41,7 +31,8 @@ public class Document {
     private DocumentModerationStatus moderationStatus;
     @Column(nullable = false)
     private boolean isPublic;
-    private Json coAuthor;
+    @Column(columnDefinition = "json")
+    private String coAuthor;
     @CreatedDate
     private LocalDateTime createdDate;
 

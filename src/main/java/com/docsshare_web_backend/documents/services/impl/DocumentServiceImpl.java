@@ -32,7 +32,6 @@ public class DocumentServiceImpl implements DocumentService{
                 .id(document.getId())
                 .title(document.getTitle())
                 .description(document.getDescription())
-                .typeFile(document.getTypeFile() != null ? document.getTypeFile().toString() : null)
                 .filePath(document.getFilePath())
                 .price(document.getPrice())
                 .moderationStatus(document.getModerationStatus() != null ? document.getModerationStatus().toString() : null)

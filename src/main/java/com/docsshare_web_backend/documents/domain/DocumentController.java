@@ -31,7 +31,7 @@ public class DocumentController {
             @RequestParam(defaultValue = "desc") String sort) {
         log.debug("Received request to get all documents with filter: {}, page: {}, size: {}, sort: {}", 
                 request, page, size, sort);
-        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Sort sortOrder = sort.equals("asc") ? Sort.by("createdDate").ascending() : Sort.by("createdDate").descending();
         Pageable pageable = PageRequest.of(page, size, sortOrder);
         Page<DocumentResponse> documents = documentService.getAllDocuments(request, pageable);
         return ResponseEntity.ok(documents);
