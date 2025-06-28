@@ -24,124 +24,185 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class DocumentServiceImpl implements DocumentService {
-    @Autowired
-    private DocumentRepository documentRepository;
+        @Autowired
+        private DocumentRepository documentRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+        @Autowired
+        private UserRepository userRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+        @Autowired
+        private CategoryRepository categoryRepository;
 
-    private Pageable getPageable(Pageable pageable) {
-        return pageable != null ? pageable : Pageable.unpaged();
-    }
-
-    public static class DocumentMapper {
-        public static DocumentResponse toDocumentResponse(Document document) {
-            return DocumentResponse.builder()
-                    .id(document.getId())
-                    .title(document.getTitle())
-                    .description(document.getDescription())
-                    .filePath(document.getFilePath())
-                    .slug(document.getSlug())
-                    .price(document.getPrice())
-                    .copyrightPath(document.getCopyrightPath())
-                    .moderationStatus(
-                            document.getModerationStatus() != null ? document.getModerationStatus().toString() : null)
-                    .isPublic(document.isPublic())
-                    .coAuthor(document.getCoAuthor() != null ? document.getCoAuthor().toString() : null)
-                    .createdAt(document.getCreatedAt())
-                    .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
-                    .category(document.getCategory() != null ? document.getCategory().getName() : "")
-                    .build();
+        private Pageable getPageable(Pageable pageable) {
+                return pageable != null ? pageable : Pageable.unpaged();
         }
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<DocumentResponse> getAllDocuments(DocumentFilterRequest request, Pageable pageable) {
-        Specification<Document> spec = DocumentFilter.filterByRequest(request);
-        return documentRepository.findAll(spec, getPageable(pageable))
-                .map(DocumentMapper::toDocumentResponse);
-    }
+        public static class DocumentMapper {
+                public static DocumentResponse toDocumentResponse(Document document) {
+                        return DocumentResponse.builder()
+                                        .id(document.getId())
+                                        .title(document.getTitle())
+                                        .description(document.getDescription())
+                                        .filePath(document.getFilePath())
+                                        .slug(document.getSlug())
+                                        .price(document.getPrice())
+                                        .copyrightPath(document.getCopyrightPath())
+                                        .moderationStatus(
+                                                        document.getModerationStatus() != null
+                                                                        ? document.getModerationStatus().toString()
+                                                                        : null)
+                                        .isPublic(document.isPublic())
+                                        .coAuthor(document.getCoAuthor() != null ? document.getCoAuthor().toString()
+                                                        : null)
+                                        .createdAt(document.getCreatedAt())
+                                        .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
+                                        .category(document.getCategory() != null ? document.getCategory().getName()
+                                                        : "")
+                                        .build();
+                }
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public DocumentResponse getDocument(long id) {
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+        @Override
+        @Transactional(readOnly = true)
+        public Page<DocumentResponse> getAllDocuments(DocumentFilterRequest request, Pageable pageable) {
+                Specification<Document> spec = DocumentFilter.filterByRequest(request);
+                return documentRepository.findAll(spec, getPageable(pageable))
+                                .map(DocumentMapper::toDocumentResponse);
+        }
 
-        return DocumentMapper.toDocumentResponse(document);
-    }
+        @Override
+        @Transactional(readOnly = true)
+        public DocumentResponse getDocument(long id) {
+                Document document = documentRepository.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
 
-    @Override
-    @Transactional(readOnly = true)
-    public DocumentResponse getDocumentBySlug(String slug){
-        if (slug == null || slug.trim().isEmpty()) {
-                throw new IllegalArgumentException("Slug cannot be null or empty");
-            }
-            Document document = documentRepository.findBySlug(slug)
-                    .orElseThrow(() -> new EntityNotFoundException("Document not found with slug: " + slug));
-    
-            return DocumentMapper.toDocumentResponse(document);
-    }
+                return DocumentMapper.toDocumentResponse(document);
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<DocumentResponse> getDocumentsByUserId(DocumentFilterRequest request, long userId, Pageable pageable) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "User not found with id: " + userId));
-        Specification<Document> spec = Specification
-                .<Document>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
-                .and(DocumentFilter.filterByRequest(request));
+        @Override
+        @Transactional(readOnly = true)
+        public DocumentResponse getDocumentBySlug(String slug) {
+                if (slug == null || slug.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Slug cannot be null or empty");
+                }
+                Document document = documentRepository.findBySlug(slug)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Document not found with slug: " + slug));
 
-        return documentRepository.findAll(spec, pageable)
-                .map(DocumentMapper::toDocumentResponse);
-    }
+                return DocumentMapper.toDocumentResponse(document);
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<DocumentResponse> getDocumentsByCategoryId(DocumentFilterRequest request, long categoryId,
-            Pageable pageable) {
-        categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Category not found with id: " + categoryId));
-        Specification<Document> spec = Specification
-                .<Document>where((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId))
-                .and(DocumentFilter.filterByRequest(request));
+        @Override
+        @Transactional(readOnly = true)
+        public Page<DocumentResponse> getDocumentsByUserId(DocumentFilterRequest request, long userId,
+                        Pageable pageable) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "User not found with id: " + userId));
+                Specification<Document> spec = Specification
+                                .<Document>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
+                                .and(DocumentFilter.filterByRequest(request));
 
-        return documentRepository.findAll(spec, pageable)
-                .map(DocumentMapper::toDocumentResponse);
-    }
+                return documentRepository.findAll(spec, pageable)
+                                .map(DocumentMapper::toDocumentResponse);
+        }
 
-    @Override
-    @Transactional
-    public DocumentResponse createDocument(DocumentRequest request) {
-        var author = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + request.getUserId()));
+        @Override
+        @Transactional(readOnly = true)
+        public Page<DocumentResponse> getDocumentsByCategoryId(DocumentFilterRequest request, long categoryId,
+                        Pageable pageable) {
+                categoryRepository.findById(categoryId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Category not found with id: " + categoryId));
+                Specification<Document> spec = Specification
+                                .<Document>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
+                                                categoryId))
+                                .and(DocumentFilter.filterByRequest(request));
 
-        var category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(
-                        () -> new EntityNotFoundException("Category not found with id: " + request.getCategoryId()));
+                return documentRepository.findAll(spec, pageable)
+                                .map(DocumentMapper::toDocumentResponse);
+        }
 
-        Document document = Document.builder()
-                .title(request.getTitle())
-                .description(request.getDesciption())
-                .filePath(request.getFilePath())
-                .slug(request.getSlug())
-                .price(request.getPrice())
-                .copyrightPath(request.getCopyrightPath())
-                .moderationStatus(DocumentModerationStatus.PENDING)
-                .isPublic(request.isPublic())
-                .coAuthor(request.getCoAuthor())
-                .author(author)
-                .category(category)
-                .build();
+        @Override
+        @Transactional(readOnly = true)
+        public Page<DocumentResponse> getDocumentsNeedApproved(DocumentFilterRequest request, Pageable pageable) {
+                Specification<Document> spec = Specification
+                                .<Document>where((root, query, cb) -> cb.equal(root.get("moderationStatus"),
+                                                DocumentModerationStatus.PENDING))
+                                .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
 
-        Document savedDocument = documentRepository.save(document);
+                return documentRepository.findAll(spec, pageable)
+                                .map(DocumentMapper::toDocumentResponse);
+        }
 
-        return DocumentMapper.toDocumentResponse(savedDocument);
-    }
+        @Override
+        @Transactional
+        public DocumentResponse createDocument(DocumentRequest request) {
+                var author = userRepository.findById(request.getUserId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "User not found with id: " + request.getUserId()));
+
+                var category = categoryRepository.findById(request.getCategoryId())
+                                .orElseThrow(
+                                                () -> new EntityNotFoundException("Category not found with id: "
+                                                                + request.getCategoryId()));
+
+                Document document = Document.builder()
+                                .title(request.getTitle())
+                                .description(request.getDesciption())
+                                .filePath(request.getFilePath())
+                                .slug(request.getSlug())
+                                .price(request.getPrice())
+                                .copyrightPath(request.getCopyrightPath())
+                                .moderationStatus(DocumentModerationStatus.PENDING)
+                                .isPublic(request.isPublic())
+                                .coAuthor(request.getCoAuthor())
+                                .author(author)
+                                .category(category)
+                                .build();
+
+                Document savedDocument = documentRepository.save(document);
+
+                return DocumentMapper.toDocumentResponse(savedDocument);
+        }
+
+        @Override
+        @Transactional
+        public DocumentResponse updateDocument(long documentId, DocumentRequest request) {
+                Document existingDocument = documentRepository.findById(documentId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Document not found with id: " + documentId));
+
+                if (existingDocument.getModerationStatus() == DocumentModerationStatus.APPROVED ||
+                                existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED) {
+                        existingDocument.setModerationStatus(DocumentModerationStatus.PENDING);
+                }
+
+                existingDocument.setTitle(request.getTitle());
+                existingDocument.setDescription(request.getDesciption());
+                existingDocument.setFilePath(request.getFilePath());
+                existingDocument.setSlug(request.getSlug());
+                existingDocument.setPrice(request.getPrice());
+                existingDocument.setCopyrightPath(request.getCopyrightPath());
+                existingDocument.setCoAuthor(request.getCoAuthor());
+                existingDocument.setPublic(request.isPublic());
+
+                Document updatedDocument = documentRepository.save(existingDocument);
+                return DocumentMapper.toDocumentResponse(updatedDocument);
+        }
+
+        @Override
+        @Transactional
+        public DocumentResponse updateDocumentStatus(long id, DocumentModerationStatus status) {
+                Document existingDocument = documentRepository.findById(id)
+                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                existingDocument.setModerationStatus(status);
+                if (status == DocumentModerationStatus.APPROVED) {
+                        existingDocument.setPublic(true);
+                } else {
+                        existingDocument.setPublic(false);
+                }
+                return DocumentMapper.toDocumentResponse(documentRepository.save(existingDocument));
+        }
+
 }

@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,4 +17,6 @@ public class DocumentFilterRequest {
     private LocalDate createdDate_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdDate_to;
+    private Boolean isPublic;
+    private DocumentModerationStatus moderationStatus;
 }
