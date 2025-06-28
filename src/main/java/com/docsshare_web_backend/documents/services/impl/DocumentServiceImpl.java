@@ -44,6 +44,7 @@ public class DocumentServiceImpl implements DocumentService {
                     .title(document.getTitle())
                     .description(document.getDescription())
                     .filePath(document.getFilePath())
+                    .slug(document.getSlug())
                     .price(document.getPrice())
                     .copyrightPath(document.getCopyrightPath())
                     .moderationStatus(
@@ -72,6 +73,18 @@ public class DocumentServiceImpl implements DocumentService {
                 .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
 
         return DocumentMapper.toDocumentResponse(document);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentResponse getDocumentBySlug(String slug){
+        if (slug == null || slug.trim().isEmpty()) {
+                throw new IllegalArgumentException("Slug cannot be null or empty");
+            }
+            Document document = documentRepository.findBySlug(slug)
+                    .orElseThrow(() -> new EntityNotFoundException("Document not found with slug: " + slug));
+    
+            return DocumentMapper.toDocumentResponse(document);
     }
 
     @Override
@@ -117,6 +130,7 @@ public class DocumentServiceImpl implements DocumentService {
                 .title(request.getTitle())
                 .description(request.getDesciption())
                 .filePath(request.getFilePath())
+                .slug(request.getSlug())
                 .price(request.getPrice())
                 .copyrightPath(request.getCopyrightPath())
                 .moderationStatus(DocumentModerationStatus.PENDING)

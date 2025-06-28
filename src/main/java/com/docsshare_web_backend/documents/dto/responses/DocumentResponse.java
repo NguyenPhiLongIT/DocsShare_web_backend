@@ -18,6 +18,7 @@ public class DocumentResponse {
     private String title;
     private String description;
     private String filePath;
+    private String slug;
     private Double price;
     private String copyrightPath;
     private String moderationStatus;

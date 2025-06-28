@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 public interface DocumentService {
     Page<DocumentResponse> getAllDocuments(DocumentFilterRequest request, Pageable pageable);
     DocumentResponse getDocument(long id);
+    DocumentResponse getDocumentBySlug(String slug);
     Page<DocumentResponse> getDocumentsByUserId(DocumentFilterRequest request, long userId, Pageable pageable);
     Page<DocumentResponse> getDocumentsByCategoryId(DocumentFilterRequest request, long categoryId, Pageable pageable);
     DocumentResponse createDocument(DocumentRequest request);
