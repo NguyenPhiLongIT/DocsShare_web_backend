@@ -3,6 +3,8 @@ package com.docsshare_web_backend.documents.models;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.policy.models.Policy;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -26,6 +28,7 @@ public class Document {
     @Column(nullable = false)
     private String filePath;
     private Double price;
+    private String copyrightPath;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private DocumentModerationStatus moderationStatus;
@@ -34,7 +37,7 @@ public class Document {
     @Column(columnDefinition = "json")
     private String coAuthor;
     @CreatedDate
-    private LocalDateTime createdDate;
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
@@ -43,4 +46,8 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "policy_id")
+    private Policy policy;
 }

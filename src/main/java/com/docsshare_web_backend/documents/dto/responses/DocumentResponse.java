@@ -19,8 +19,11 @@ public class DocumentResponse {
     private String description;
     private String filePath;
     private Double price;
+    private String copyrightPath;
     private String moderationStatus;
     private boolean isPublic;
     private String coAuthor;
-    private LocalDateTime createdDate;
+    private LocalDateTime createdAt;
+    private String authorName;
+    private String category;
 }

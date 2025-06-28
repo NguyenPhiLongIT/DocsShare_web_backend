@@ -1,5 +1,9 @@
 package com.docsshare_web_backend.categories.models;
 
+import java.util.List;
+
+import com.docsshare_web_backend.documents.models.Document;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +23,13 @@ public class Category {
     
     private String description;
     
-    @Column(name = "parent_id")
-    private Long parentId;
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Category> children;
+
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Document> documents;
 }
