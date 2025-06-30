@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.users.models;
 
+import com.docsshare_web_backend.comments.models.Comment;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,6 +64,9 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ForumPost> forumPosts;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Comment> comments;
 
     @Override
     public String getUsername() {

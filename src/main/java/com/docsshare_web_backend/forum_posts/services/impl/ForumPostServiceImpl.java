@@ -23,6 +23,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @Service
 public class ForumPostServiceImpl implements ForumPostService {
@@ -66,7 +68,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     @Override
     @Transactional(readOnly = true)
     public ForumPostResponse getForumPostById(long id) {
-        ForumPost forumPost = forumPostRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Forum post not found with id: " + id));
+        ForumPost forumPost = forumPostRepository.findById(id)
+                .orElseThrow(()->new EntityNotFoundException("Forum post not found with id: " + id));
         return ForumPostMapper.toForumPostResponse(forumPost);
     }
 
@@ -139,6 +142,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         existingForumPost.setType(ForumPostType.valueOf(request.getType()));
         existingForumPost.setIsPublic(request.getIsPublic());
 //        exstingForumPost.setCategory(category);
+        existingForumPost.setUpdateAt(LocalDateTime.now());
 
         ForumPost updatedForumPost = forumPostRepository.save(existingForumPost);
         return ForumPostMapper.toForumPostResponse(updatedForumPost);
