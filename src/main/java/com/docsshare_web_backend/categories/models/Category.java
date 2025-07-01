@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.docsshare_web_backend.documents.models.Document;
 
+import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,4 +33,7 @@ public class Category {
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Document> documents;
+
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<ForumPost> forumPosts;
 }
