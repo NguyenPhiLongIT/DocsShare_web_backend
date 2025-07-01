@@ -52,7 +52,7 @@ public class User implements UserDetails {
     private UserStatus status;
     
     @CreatedDate
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @Column(unique = true, nullable = true)
     private String googleId;
