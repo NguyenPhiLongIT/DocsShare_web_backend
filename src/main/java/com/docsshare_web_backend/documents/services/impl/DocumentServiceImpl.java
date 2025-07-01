@@ -1,5 +1,10 @@
 package com.docsshare_web_backend.documents.services.impl;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +19,14 @@ import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
 import com.docsshare_web_backend.documents.models.Document;
+import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
+import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
+import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.users.repositories.UserRepository;
+import com.docsshare_web_backend.commons.services.GoogleDriveService;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -33,12 +43,27 @@ public class DocumentServiceImpl implements DocumentService {
         @Autowired
         private CategoryRepository categoryRepository;
 
+        @Autowired
+        private DocumentCoAuthorService documentCoAuthorService;
+
+        @Autowired
+        private GoogleDriveService googleDriveService;
+
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
         }
 
         public static class DocumentMapper {
                 public static DocumentResponse toDocumentResponse(Document document) {
+                        List<DocumentCoAuthorResponse> coAuthors = document.getCoAuthors() != null
+                                ? document.getCoAuthors().stream()
+                                .map(coAuthor -> DocumentCoAuthorResponse.builder()
+                                        .name(coAuthor.getName())
+                                        .email(coAuthor.getEmail())
+                                        .build())
+                                .collect(Collectors.toList())
+                                : Collections.emptyList(); 
+
                         return DocumentResponse.builder()
                                         .id(document.getId())
                                         .title(document.getTitle())
@@ -52,12 +77,11 @@ public class DocumentServiceImpl implements DocumentService {
                                                                         ? document.getModerationStatus().toString()
                                                                         : null)
                                         .isPublic(document.isPublic())
-                                        .coAuthor(document.getCoAuthor() != null ? document.getCoAuthor().toString()
-                                                        : null)
                                         .createdAt(document.getCreatedAt())
                                         .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
                                         .category(document.getCategory() != null ? document.getCategory().getName()
                                                         : "")
+                                        .coAuthors(coAuthors)
                                         .build();
                 }
         }
@@ -147,22 +171,32 @@ public class DocumentServiceImpl implements DocumentService {
                                                 () -> new EntityNotFoundException("Category not found with id: "
                                                                 + request.getCategoryId()));
 
+                String fileUrl;
+                try {
+                    fileUrl = googleDriveService.uploadFile(request.getFile(), "DocsShareStorage");
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to upload file to Google Drive", e);
+                }
+
                 Document document = Document.builder()
                                 .title(request.getTitle())
-                                .description(request.getDesciption())
-                                .filePath(request.getFilePath())
+                                .description(request.getDescription())
+                                .filePath(fileUrl)
                                 .slug(request.getSlug())
                                 .price(request.getPrice())
                                 .copyrightPath(request.getCopyrightPath())
                                 .moderationStatus(DocumentModerationStatus.PENDING)
                                 .isPublic(request.isPublic())
-                                .coAuthor(request.getCoAuthor())
                                 .author(author)
                                 .category(category)
                                 .build();
 
                 Document savedDocument = documentRepository.save(document);
-
+                if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
+                        for (var coAuthorRequest : request.getCoAuthor()) {
+                            documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);
+                        }
+                    }
                 return DocumentMapper.toDocumentResponse(savedDocument);
         }
 
@@ -179,12 +213,18 @@ public class DocumentServiceImpl implements DocumentService {
                 }
 
                 existingDocument.setTitle(request.getTitle());
-                existingDocument.setDescription(request.getDesciption());
-                existingDocument.setFilePath(request.getFilePath());
+                existingDocument.setDescription(request.getDescription());
+                if (request.getFile() != null) {
+                        try {
+                                String fileUrl = googleDriveService.uploadFile(request.getFile(), "documents");
+                                existingDocument.setFilePath(fileUrl);
+                        } catch (IOException e) {
+                                throw new RuntimeException("Failed to upload file to Google Drive", e);
+                        }
+                }
                 existingDocument.setSlug(request.getSlug());
                 existingDocument.setPrice(request.getPrice());
                 existingDocument.setCopyrightPath(request.getCopyrightPath());
-                existingDocument.setCoAuthor(request.getCoAuthor());
                 existingDocument.setPublic(request.isPublic());
 
                 Document updatedDocument = documentRepository.save(existingDocument);

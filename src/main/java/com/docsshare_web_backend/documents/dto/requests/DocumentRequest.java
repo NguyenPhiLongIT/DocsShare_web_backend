@@ -1,5 +1,10 @@
 package com.docsshare_web_backend.documents.dto.requests;
 
+import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -17,18 +22,17 @@ public class DocumentRequest {
     @NotBlank(message = "Title should not be blank")
     @NotNull(message = "Title should not be null")
     private String title;
-    private String desciption;
-    @NotBlank(message = "File should not be blank")
-    @NotNull(message = "File should not be null")
-    private String filePath;
-    @NotBlank(message = "Slug should not be blank")
+    private String description;
+    @JsonIgnore
+    private MultipartFile file;
     @NotNull(message = "Slug should not be null")
     private String slug;
     private Double price;
     private String copyrightPath;
     private String moderationStatus;
+    @JsonProperty("isPublic")
     private boolean isPublic;
-    private String coAuthor;
     private Long userId;
     private Long categoryId;
+    private List<DocumentCoAuthorRequest> coAuthor;
 }
