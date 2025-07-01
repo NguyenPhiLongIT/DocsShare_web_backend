@@ -7,7 +7,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 @EnableJpaAuditing
 @SpringBootApplication
-public class DocsShareWebApplication {
+public class
+DocsShareWebApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(DocsShareWebApplication.class, args);

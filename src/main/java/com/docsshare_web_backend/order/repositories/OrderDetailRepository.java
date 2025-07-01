@@ -1,0 +1,16 @@
+package com.docsshare_web_backend.order.repositories;
+
+import com.docsshare_web_backend.order.enums.OrderStatus;
+import com.docsshare_web_backend.order.models.Order;
+import com.docsshare_web_backend.order.models.OrderDetail;
+import com.docsshare_web_backend.users.models.User;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long>, JpaSpecificationExecutor<Order> {
+
+}
