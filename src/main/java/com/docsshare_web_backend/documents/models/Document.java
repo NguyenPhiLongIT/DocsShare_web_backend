@@ -8,6 +8,8 @@ import com.docsshare_web_backend.policy.models.Policy;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -36,8 +38,6 @@ public class Document {
     private DocumentModerationStatus moderationStatus;
     @Column(nullable = false)
     private boolean isPublic;
-    @Column(columnDefinition = "json")
-    private String coAuthor;
     @CreatedDate
     private LocalDateTime createdAt;
 
@@ -52,4 +52,7 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "policy_id")
     private Policy policy;
+
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DocumentCoAuthor> coAuthors;
 }

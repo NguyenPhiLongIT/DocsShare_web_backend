@@ -19,4 +19,5 @@ public class DocumentFilterRequest {
     private LocalDate createdDate_to;
     private Boolean isPublic;
     private DocumentModerationStatus moderationStatus;
+    private Double price;
 }
