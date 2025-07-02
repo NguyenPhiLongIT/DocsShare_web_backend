@@ -31,5 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
-**/application.properties
+src/main/resources/*.json
+src/main/resources/application-*.properties
 /memory-bank
