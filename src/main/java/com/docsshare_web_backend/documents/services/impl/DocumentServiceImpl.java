@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,8 @@ import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
+import com.docsshare_web_backend.commons.utils.SlugUtils;
+
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -171,18 +174,31 @@ public class DocumentServiceImpl implements DocumentService {
                                                 () -> new EntityNotFoundException("Category not found with id: "
                                                                 + request.getCategoryId()));
 
-                String fileUrl;
+                String fileHash;
                 try {
-                    fileUrl = googleDriveService.uploadFile(request.getFile(), "DocsShareStorage");
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to upload file to Google Drive", e);
+                        fileHash = googleDriveService.calculateSHA256Hash(request.getFile());
+                } catch (Exception e) {
+                        throw new RuntimeException("Failed to calculate file hash", e);
+                }
+                Optional<Document> existingDocument = documentRepository.findByFileHash(fileHash);
+                
+                String fileUrl;
+                if (existingDocument.isPresent()) {
+                        fileUrl = existingDocument.get().getFilePath(); // Dùng file đã tồn tại
+                } else {
+                        try {
+                                fileUrl = googleDriveService.uploadFile(request.getFile(), "DocsShareStorage");
+                        } catch (IOException e) {
+                                throw new RuntimeException("Failed to upload file to Google Drive", e);
+                        }
                 }
 
                 Document document = Document.builder()
                                 .title(request.getTitle())
                                 .description(request.getDescription())
                                 .filePath(fileUrl)
-                                .slug(request.getSlug())
+                                .fileHash(fileHash)
+                                .slug(null)
                                 .price(request.getPrice())
                                 .copyrightPath(request.getCopyrightPath())
                                 .moderationStatus(DocumentModerationStatus.PENDING)
@@ -192,6 +208,8 @@ public class DocumentServiceImpl implements DocumentService {
                                 .build();
 
                 Document savedDocument = documentRepository.save(document);
+                savedDocument.setSlug(SlugUtils.generateSlug(savedDocument.getTitle(), savedDocument.getId()));
+                savedDocument = documentRepository.save(savedDocument);
                 if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
                         for (var coAuthorRequest : request.getCoAuthor()) {
                             documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);

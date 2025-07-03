@@ -14,4 +14,5 @@ import java.util.Optional;
 public interface DocumentRepository 
     extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
     Optional<Document> findBySlug(String slug);
+    Optional<Document> findByFileHash(String fileHash);
 }
