@@ -180,11 +180,10 @@ public class DocumentServiceImpl implements DocumentService {
                 } catch (Exception e) {
                         throw new RuntimeException("Failed to calculate file hash", e);
                 }
-                Optional<Document> existingDocument = documentRepository.findByFileHash(fileHash);
-                
+                List<Document> existingDocuments = documentRepository.findByFileHash(fileHash);
                 String fileUrl;
-                if (existingDocument.isPresent()) {
-                        fileUrl = existingDocument.get().getFilePath(); // Dùng file đã tồn tại
+                if (!existingDocuments.isEmpty()) {
+                        fileUrl = existingDocuments.get(0).getFilePath(); // Dùng file đã tồn tại
                 } else {
                         try {
                                 fileUrl = googleDriveService.uploadFile(request.getFile(), "DocsShareStorage");
