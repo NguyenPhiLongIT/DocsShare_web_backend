@@ -1,5 +1,7 @@
 package com.docsshare_web_backend.users.services.impl;
 
+import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
+import com.docsshare_web_backend.documents.repositories.DocumentCoAuthorRepository;
 import com.docsshare_web_backend.users.dto.requests.GoogleAuthRequest;
 import com.docsshare_web_backend.users.dto.requests.LoginRequest;
 import com.docsshare_web_backend.users.dto.requests.RegisterRequest;
@@ -11,6 +13,7 @@ import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.users.services.AuthenticationService;
 
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,8 +27,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
+
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service("AuthenticationServiceImpl")
 @Primary
@@ -33,6 +39,9 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     private final static JwtUtils jwtUtils = new JwtUtils();
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private DocumentCoAuthorRepository documentCoAuthorRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -70,6 +79,11 @@ public class AuthenticationServiceImpl implements AuthenticationService{
 
     @Override
     public AuthenticationResponse register(RegisterRequest registerRequest) {
+        // 1. Kiểm tra email đã tồn tại
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại!");
+        }
+
         User user = User.builder()
                 .name(registerRequest.getName())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
@@ -82,7 +96,19 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                 .status(UserStatus.ACTIVE)
                 .build();
 
-        return AuthenticationMapper.toAuthenticationResponse(userRepository.save(user));
+        user = userRepository.save(user);
+
+        // 3. Gán user_id cho các dòng DocumentCoAuthor trùng tên & email
+        List<DocumentCoAuthor> coAuthors = documentCoAuthorRepository
+                .findByNameAndEmail(registerRequest.getName(), registerRequest.getEmail());
+
+        for (DocumentCoAuthor coAuthor : coAuthors) {
+            coAuthor.setUser(user);
+        }
+
+        documentCoAuthorRepository.saveAll(coAuthors);
+
+        return AuthenticationMapper.toAuthenticationResponse(user);
     }
 
     @Override

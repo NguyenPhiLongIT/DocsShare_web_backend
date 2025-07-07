@@ -43,12 +43,59 @@ public class AccountController {
         return ResponseEntity.ok(accountService.getAccount(accountId));
     }
 
-//    @PostMapping("/create")
-//    public ResponseEntity<AccountResponse> createAccount(@RequestBody AccountRequest accountRequest) {
-//        log.debug("[AccountController] Create Account {}", accountRequest);
-//        return ResponseEntity.status(HttpStatus.CREATED)
-//                .body(accountService.createAccount(accountRequest));
-//    }
+    @GetMapping("/nation")
+    public ResponseEntity<Page<AccountResponse>> getAccountByNation(
+            @RequestParam String nation,
+            @ModelAttribute AccountFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sort.equalsIgnoreCase("asc") ? Sort.by("createdAt").ascending()
+                        : Sort.by("createdAt").descending()
+        );
+
+        Page<AccountResponse> accounts = accountService.getAccountsByNation(nation, pageable);
+        return ResponseEntity.ok(accounts);
+    }
+
+    @GetMapping("/degree")
+    public ResponseEntity<Page<AccountResponse>> getAccountByDegree(
+            @RequestParam String degree,
+            @ModelAttribute AccountFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sort.equalsIgnoreCase("asc") ? Sort.by("createdAt").ascending()
+                        : Sort.by("createdAt").descending()
+        );
+
+        Page<AccountResponse> accounts = accountService.getAccountsByDegree(degree, pageable);
+        return ResponseEntity.ok(accounts);
+    }
+
+    @GetMapping("/college")
+    public ResponseEntity<Page<AccountResponse>> getAccountByCollege(
+            @RequestParam String college,
+            @ModelAttribute AccountFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sort.equalsIgnoreCase("asc") ? Sort.by("createdAt").ascending()
+                        : Sort.by("createdAt").descending()
+        );
+
+        Page<AccountResponse> accounts = accountService.getAccountsByCollege(college, pageable);
+        return ResponseEntity.ok(accounts);
+    }
 
     @PutMapping("/{accountId}/update")
     public ResponseEntity<AccountResponse> updateAccount(
