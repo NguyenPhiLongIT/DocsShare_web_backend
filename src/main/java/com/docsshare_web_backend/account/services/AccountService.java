@@ -15,4 +15,7 @@ public interface AccountService {
     //AccountResponse createDocument(AccountRequest request);
     AccountResponse updateAccount(long documentId, AccountRequest request);
     //AccountResponse updateDocumentStatus(long id, AccountStatus status);
+    Page<AccountResponse> getAccountsByNation(String nation, Pageable pageable);
+    Page<AccountResponse> getAccountsByDegree(String degree, Pageable pageable);
+    Page<AccountResponse> getAccountsByCollege(String college, Pageable pageable);
 }

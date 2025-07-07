@@ -96,19 +96,21 @@ public class AccountServiceImpl implements AccountService {
                 return AccountMapper.toAccountResponse(updatedAccount);
         }
 
-//
-//        @Override
-//        @Transactional
-//        public AccountResponse updateDocumentStatus(long id, AccountStatus status) {
-//                Account existingAccount = accountRepository.findById(id)
-//                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-//                existingAccount.setModerationStatus(status);
-//                if (status == AccountStatus.APPROVED) {
-//                        existingAccount.setPublic(true);
-//                } else {
-//                        existingAccount.setPublic(false);
-//                }
-//                return DocumentMapper.toDocumentResponse(accountRepository.save(existingAccount));
-//        }
+        @Override
+        public Page<AccountResponse> getAccountsByNation(String nation, Pageable pageable) {
+                Page<User> users = accountRepository.findByNationIgnoreCaseContaining(nation, pageable);
+                return users.map(AccountMapper::toAccountResponse);
+        }
 
+        @Override
+        public Page<AccountResponse> getAccountsByDegree(String degree, Pageable pageable) {
+                Page<User> users = accountRepository.findByDegreeIgnoreCaseContaining(degree, pageable);
+                return users.map(AccountMapper::toAccountResponse);
+        }
+
+        @Override
+        public Page<AccountResponse> getAccountsByCollege(String college, Pageable pageable) {
+                Page<User> users = accountRepository.findByCollegeIgnoreCaseContaining(college, pageable);
+                return users.map(AccountMapper::toAccountResponse);
+        }
 }

@@ -26,6 +26,7 @@ public class DocumentResponse {
     private boolean isPublic;
     private LocalDateTime createdAt;
     private String authorName;
+    private String authorId;
     private String category;
     private List<DocumentCoAuthorResponse> coAuthors;
 }
