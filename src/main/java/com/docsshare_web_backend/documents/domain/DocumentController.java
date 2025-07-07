@@ -127,3 +127,6 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status));
     }
 }
+
+
+

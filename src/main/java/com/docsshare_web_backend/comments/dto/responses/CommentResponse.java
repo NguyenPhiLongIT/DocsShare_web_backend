@@ -1,5 +1,7 @@
 package com.docsshare_web_backend.comments.dto.responses;
 
+import com.docsshare_web_backend.account.dto.responses.AccountResponse;
+import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import lombok.*;
@@ -16,6 +18,6 @@ public class CommentResponse {
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
-    private String userName;
+    private UserResponse user;
     private ForumPostResponse forumPost;
 }

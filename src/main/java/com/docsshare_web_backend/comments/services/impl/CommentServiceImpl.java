@@ -1,11 +1,15 @@
 package com.docsshare_web_backend.comments.services.impl;
 
+import com.docsshare_web_backend.account.dto.responses.AccountResponse;
+import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.comments.dto.requests.CommentRequest;
 import com.docsshare_web_backend.comments.dto.responses.CommentResponse;
 import com.docsshare_web_backend.comments.models.Comment;
 import com.docsshare_web_backend.comments.repositories.CommentRepository;
 import com.docsshare_web_backend.comments.services.CommentService;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
+import com.docsshare_web_backend.forum_posts.filters.ForumPostFilter;
+import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -40,15 +44,24 @@ public class CommentServiceImpl implements CommentService {
                     .content(comment.getContent())
                     .createdAt(comment.getCreatedAt())
                     .updateAt(comment.getUpdateAt())
-                    .userName(comment.getUser().getName())
+                    .user(UserResponse.builder()
+                            .id(comment.getUser().getId())
+                            .name(comment.getUser().getName())
+                            .avatar(comment.getUser().getAvatar())
+                            .build())
                     .forumPost(ForumPostResponse.builder()
                             .id(comment.getForumPost().getId())
                             .title(comment.getForumPost().getTitle())
                             .content(comment.getForumPost().getContent())
-                            .file(comment.getForumPost().getFile())
+                            .file(comment.getForumPost().getFilePath())
                             .type(comment.getForumPost().getType() != null ? comment.getForumPost().getType().toString() : null)
                             .isPublic(comment.getForumPost().getIsPublic() != null ? comment.getForumPost().getIsPublic().toString() : null)
-                            .user(comment.getForumPost().getUser() != null ? comment.getForumPost().getUser().getName() : "")
+//                            .user(comment.getForumPost().getUser() != null ? comment.getForumPost().getUser().getName() : "")
+                            .user(UserResponse.builder()
+                                    .id(comment.getForumPost().getUser().getId())
+                                    .name(comment.getForumPost().getUser().getName())
+                                    .avatar(comment.getForumPost().getUser().getAvatar())
+                                    .build())
                             .category(comment.getForumPost().getCategory() != null ? comment.getForumPost().getCategory().getName() : "")
                             .createdAt(comment.getForumPost().getCreatedAt())
                             .updateAt(comment.getForumPost().getUpdateAt())

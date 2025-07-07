@@ -76,7 +76,9 @@ public class ForumPostController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ForumPostResponse> createForumPost(@RequestBody ForumPostRequest forumPostRequest){
+    public ResponseEntity<ForumPostResponse> createForumPost(
+            @RequestBody ForumPostRequest forumPostRequest
+    ){
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(forumPostService.createForumPost(forumPostRequest));
     }
