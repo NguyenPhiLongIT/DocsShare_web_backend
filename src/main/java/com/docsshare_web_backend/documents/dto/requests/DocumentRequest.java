@@ -25,7 +25,6 @@ public class DocumentRequest {
     private String description;
     @JsonIgnore
     private MultipartFile file;
-    @NotNull(message = "Slug should not be null")
     private String slug;
     private Double price;
     private String copyrightPath;

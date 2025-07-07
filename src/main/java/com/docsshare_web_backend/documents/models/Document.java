@@ -24,13 +24,14 @@ public class Document {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String slug;
     @Column(nullable = false)
     private String title;
     private String description;
     @Column(nullable = false)
     private String filePath;
+    private String fileHash;
     private Double price;
     private String copyrightPath;
     @Column(nullable = false)

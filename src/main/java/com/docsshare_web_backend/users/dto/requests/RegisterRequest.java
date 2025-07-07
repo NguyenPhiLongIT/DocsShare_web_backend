@@ -22,8 +22,6 @@ public class RegisterRequest {
     @NotBlank(message = "Password is required")
     @NotNull(message = "Password cannot be null")
     private String password;
-    @NotBlank(message = "Nation is required")
-    @NotNull(message = "Nation cannot be null")
     private String nation;
     private String degree;
     private String college;
