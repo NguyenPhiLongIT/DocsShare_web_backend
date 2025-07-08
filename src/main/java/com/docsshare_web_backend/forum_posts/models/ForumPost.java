@@ -2,6 +2,7 @@ package com.docsshare_web_backend.forum_posts.models;
 
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.comments.models.Comment;
+import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.users.models.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -54,7 +55,10 @@ public class ForumPost {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_id", nullable = false)
+    private Document document;
+
     @OneToMany(mappedBy = "forumPost", cascade = CascadeType.ALL)
     private List<Comment> comments;
-
 }
