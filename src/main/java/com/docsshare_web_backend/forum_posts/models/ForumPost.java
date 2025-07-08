@@ -37,7 +37,7 @@ public class ForumPost {
     @Column(name = "tag")
     private Set<String> tags;
 
-    private Integer reads;
+    private Integer views;
     @Column(nullable = false)
     private Boolean isPublic;
 
