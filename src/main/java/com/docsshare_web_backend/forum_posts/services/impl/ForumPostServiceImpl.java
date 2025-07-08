@@ -16,6 +16,7 @@ import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
 import com.docsshare_web_backend.forum_posts.services.ForumPostService;
 import com.docsshare_web_backend.users.repositories.UserRepository;
+import com.docsshare_web_backend.commons.services.ToxicService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     private UserRepository userRepository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private ToxicService toxicService;
 
     private Pageable getPageable(Pageable pageable){
         return pageable != null ? pageable : Pageable.unpaged();
@@ -114,6 +117,8 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("Category not found with id: "
                                 + request.getCategoryId()));
+        toxicService.validateTextSafety(request.getTitle(), "Title");
+        toxicService.validateTextSafety(request.getContent(), "Content");
 
         ForumPost forumPost = ForumPost.builder()
                 .title(request.getTitle())
@@ -135,6 +140,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Forum post not found with id: " + forumPostId));
 
+        toxicService.validateTextSafety(request.getTitle(), "Title");
+        toxicService.validateTextSafety(request.getContent(), "Content");
+        
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "

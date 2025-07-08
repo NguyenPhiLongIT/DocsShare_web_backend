@@ -20,6 +20,8 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class GoogleDriveService {
@@ -101,4 +103,14 @@ public class GoogleDriveService {
         return DatatypeConverter.printHexBinary(hash).toLowerCase();
     }
 
+    public String extractFileIdFromUrl(String filePath) {
+        Pattern pattern = Pattern.compile("https://drive\\.google\\.com/file/d/([a-zA-Z0-9_-]+)");
+        Matcher matcher = pattern.matcher(filePath);
+        if (matcher.find()) {
+            return matcher.group(1);
+        } else {
+            throw new IllegalArgumentException("Invalid Google Drive file path: " + filePath);
+        }
+    }
+    
 }

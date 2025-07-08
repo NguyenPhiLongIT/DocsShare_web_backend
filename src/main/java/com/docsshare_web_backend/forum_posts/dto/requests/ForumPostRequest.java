@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ForumPostRequest {
+    @NotBlank(message = "Title should not be blank")
+    @NotNull(message = "Title should not be null")
     private String title;
     @NotBlank(message = "Content should not be blank")
     @NotNull(message = "Content should not be null")

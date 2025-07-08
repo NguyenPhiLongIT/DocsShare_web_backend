@@ -25,13 +25,11 @@ public class ForumPost {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String content;
-
     @Column(nullable = false)
+    private String title;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
+    
     private String filePath;
 
     @Enumerated(EnumType.STRING)
