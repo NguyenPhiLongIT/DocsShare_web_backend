@@ -1,13 +1,9 @@
 package com.docsshare_web_backend.forum_posts.dto.responses;
-
-import com.docsshare_web_backend.account.dto.responses.AccountResponse;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
-import com.docsshare_web_backend.forum_posts.enums.ForumPostStatus;
-import com.docsshare_web_backend.forum_posts.enums.ForumPostType;
-import com.docsshare_web_backend.users.models.User;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -15,11 +11,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ForumPostResponse {
-    private int id;
+    private Long id;
     private String title;
     private String content;
-    private String file;
-    private String type;
+    private String filePath;
+    private Set<String> tags;
+    private Integer reads;
     private String isPublic;
     private UserResponse user;
     private String category;

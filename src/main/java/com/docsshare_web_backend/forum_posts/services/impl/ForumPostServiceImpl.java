@@ -1,21 +1,17 @@
 package com.docsshare_web_backend.forum_posts.services.impl;
 
-import com.docsshare_web_backend.account.dto.responses.AccountResponse;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
-import com.docsshare_web_backend.documents.filters.DocumentFilter;
-import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
-import com.docsshare_web_backend.forum_posts.enums.ForumPostType;
 import com.docsshare_web_backend.forum_posts.filters.ForumPostFilter;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
 import com.docsshare_web_backend.forum_posts.services.ForumPostService;
 import com.docsshare_web_backend.users.repositories.UserRepository;
+import com.docsshare_web_backend.commons.services.ToxicService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +32,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     private UserRepository userRepository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private ToxicService toxicService;
 
     private Pageable getPageable(Pageable pageable){
         return pageable != null ? pageable : Pageable.unpaged();
@@ -49,8 +47,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .id(forumPost.getId())
                     .title(forumPost.getTitle())
                     .content(forumPost.getContent())
-                    .file(forumPost.getFilePath())
-                    .type(forumPost.getType() != null ? forumPost.getType().toString() : null)
+                    .filePath(forumPost.getFilePath())
                     .isPublic(forumPost.getIsPublic() != null ? forumPost.getIsPublic().toString() : null)
                     .category(forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
                     .createdAt(forumPost.getCreatedAt())
@@ -114,12 +111,13 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("Category not found with id: "
                                 + request.getCategoryId()));
+        toxicService.validateTextSafety(request.getTitle(), "Title");
+        toxicService.validateTextSafety(request.getContent(), "Content");
 
         ForumPost forumPost = ForumPost.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
                 .filePath(request.getFilePath())
-                .type(request.getType() != null ? ForumPostType.valueOf(request.getType()) : ForumPostType.QUESTION)
                 .isPublic(request.getIsPublic())
                 .user(user)
                 .category(category)
@@ -135,6 +133,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Forum post not found with id: " + forumPostId));
 
+        toxicService.validateTextSafety(request.getTitle(), "Title");
+        toxicService.validateTextSafety(request.getContent(), "Content");
+        
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "
@@ -146,7 +147,6 @@ public class ForumPostServiceImpl implements ForumPostService {
         existingForumPost.setTitle(request.getTitle());
         existingForumPost.setContent(request.getContent());
         existingForumPost.setFilePath(request.getFilePath());
-        existingForumPost.setType(ForumPostType.valueOf(request.getType()));
         existingForumPost.setIsPublic(request.getIsPublic());
 //        exstingForumPost.setCategory(category);
         existingForumPost.setUpdateAt(LocalDateTime.now());

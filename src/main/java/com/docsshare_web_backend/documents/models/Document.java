@@ -3,7 +3,6 @@ package com.docsshare_web_backend.documents.models;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
-import com.docsshare_web_backend.policy.models.Policy;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,11 +31,14 @@ public class Document {
     @Column(nullable = false)
     private String filePath;
     private String fileHash;
+    private String fileType;
+    private Integer reads;
     private Double price;
     private String copyrightPath;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private DocumentModerationStatus moderationStatus;
+    private String rejectedReason;
     @Column(nullable = false)
     private boolean isPublic;
     @CreatedDate
@@ -49,10 +51,6 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "policy_id")
-    private Policy policy;
 
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DocumentCoAuthor> coAuthors;

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentResponse {
-    private int id;
+    private Long id;
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;

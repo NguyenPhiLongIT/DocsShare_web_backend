@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.comments.models;
 
+import com.docsshare_web_backend.comments.enums.CommentType;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.users.models.User;
 import jakarta.persistence.*;
@@ -20,10 +21,16 @@ import java.time.LocalDateTime;
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CommentType type;
+
+    private boolean isHiden;
 
     @CreatedDate
     private LocalDateTime createdAt;
