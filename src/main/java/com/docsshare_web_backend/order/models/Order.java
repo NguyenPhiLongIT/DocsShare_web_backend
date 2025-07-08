@@ -30,6 +30,8 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
+    private Double commissionRate;
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;

@@ -54,7 +54,6 @@ public class CommentServiceImpl implements CommentService {
                             .title(comment.getForumPost().getTitle())
                             .content(comment.getForumPost().getContent())
                             .file(comment.getForumPost().getFilePath())
-                            .type(comment.getForumPost().getType() != null ? comment.getForumPost().getType().toString() : null)
                             .isPublic(comment.getForumPost().getIsPublic() != null ? comment.getForumPost().getIsPublic().toString() : null)
 //                            .user(comment.getForumPost().getUser() != null ? comment.getForumPost().getUser().getName() : "")
                             .user(UserResponse.builder()

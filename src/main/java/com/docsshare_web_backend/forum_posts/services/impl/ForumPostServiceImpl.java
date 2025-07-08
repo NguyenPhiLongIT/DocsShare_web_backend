@@ -1,16 +1,11 @@
 package com.docsshare_web_backend.forum_posts.services.impl;
 
-import com.docsshare_web_backend.account.dto.responses.AccountResponse;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
-import com.docsshare_web_backend.documents.filters.DocumentFilter;
-import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
-import com.docsshare_web_backend.forum_posts.enums.ForumPostType;
 import com.docsshare_web_backend.forum_posts.filters.ForumPostFilter;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
@@ -52,8 +47,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .id(forumPost.getId())
                     .title(forumPost.getTitle())
                     .content(forumPost.getContent())
-                    .file(forumPost.getFilePath())
-                    .type(forumPost.getType() != null ? forumPost.getType().toString() : null)
+                    .filePath(forumPost.getFilePath())
                     .isPublic(forumPost.getIsPublic() != null ? forumPost.getIsPublic().toString() : null)
                     .category(forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
                     .createdAt(forumPost.getCreatedAt())
@@ -124,7 +118,6 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .title(request.getTitle())
                 .content(request.getContent())
                 .filePath(request.getFilePath())
-                .type(request.getType() != null ? ForumPostType.valueOf(request.getType()) : ForumPostType.QUESTION)
                 .isPublic(request.getIsPublic())
                 .user(user)
                 .category(category)
@@ -154,7 +147,6 @@ public class ForumPostServiceImpl implements ForumPostService {
         existingForumPost.setTitle(request.getTitle());
         existingForumPost.setContent(request.getContent());
         existingForumPost.setFilePath(request.getFilePath());
-        existingForumPost.setType(ForumPostType.valueOf(request.getType()));
         existingForumPost.setIsPublic(request.getIsPublic());
 //        exstingForumPost.setCategory(category);
         existingForumPost.setUpdateAt(LocalDateTime.now());

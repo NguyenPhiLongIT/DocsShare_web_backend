@@ -126,7 +126,6 @@ public class OrderServiceImpl implements OrderService {
                         return OrderDetail.builder()
                                 .order(savedOrder)
                                 .document(document)
-                                .quantity(item.getQuantity())
                                 .price(item.getPrice())
                                 .build();
                 }).toList();

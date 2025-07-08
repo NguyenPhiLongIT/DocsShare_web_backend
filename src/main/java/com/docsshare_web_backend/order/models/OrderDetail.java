@@ -23,8 +23,6 @@ public class OrderDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer quantity;
-
     private Integer price;
 
     @CreatedDate
