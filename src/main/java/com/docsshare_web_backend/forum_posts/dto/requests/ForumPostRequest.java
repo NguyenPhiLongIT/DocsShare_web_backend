@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @Builder
@@ -18,10 +20,12 @@ public class ForumPostRequest {
     @NotBlank(message = "Content should not be blank")
     @NotNull(message = "Content should not be null")
     private String content;
+    private Set<String> tags;
 //    @JsonIgnore
     private String filePath;
     private String type;
     private Boolean isPublic;
     private Long userId;
+    private long documentId;
     private Long categoryId;
 }

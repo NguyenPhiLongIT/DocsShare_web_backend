@@ -52,6 +52,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .category(forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
                     .createdAt(forumPost.getCreatedAt())
                     .updateAt(forumPost.getUpdateAt())
+                    .readQuantity(forumPost.getReadQuantity())
+                    .tags(forumPost.getTags())
+                    .linkDocument(forumPost.getDocument().getSlug())
                     .user(UserResponse.builder()
                             .id(forumPost.getUser().getId())
                             .name(forumPost.getUser().getName())
@@ -119,6 +122,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .content(request.getContent())
                 .filePath(request.getFilePath())
                 .isPublic(request.getIsPublic())
+                .tags(request.getTags())
                 .user(user)
                 .category(category)
                 .build();
@@ -148,6 +152,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         existingForumPost.setContent(request.getContent());
         existingForumPost.setFilePath(request.getFilePath());
         existingForumPost.setIsPublic(request.getIsPublic());
+        existingForumPost.setTags(request.getTags());
 //        exstingForumPost.setCategory(category);
         existingForumPost.setUpdateAt(LocalDateTime.now());
 

@@ -16,9 +16,10 @@ public class ForumPostResponse {
     private String content;
     private String filePath;
     private Set<String> tags;
-    private Integer reads;
+    private Integer readQuantity;
     private String isPublic;
     private UserResponse user;
+    private String linkDocument;
     private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
