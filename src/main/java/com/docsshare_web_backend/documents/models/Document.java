@@ -32,7 +32,7 @@ public class Document {
     private String filePath;
     private String fileHash;
     private String fileType;
-    private Integer views;
+    private Long views;
     private Double price;
     private String copyrightPath;
     @Column(nullable = false)
