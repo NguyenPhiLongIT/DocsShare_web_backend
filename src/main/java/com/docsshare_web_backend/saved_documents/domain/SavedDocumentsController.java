@@ -56,12 +56,12 @@ public class SavedDocumentsController {
         return ResponseEntity.ok(savedDocuments);
     }
 
-    @PostMapping("/{documentId}")
+    @PostMapping("/save")
     public ResponseEntity<SavedDocumentsResponse> saveDocument(@RequestBody SavedDocumentsRequest request) {
         return ResponseEntity.ok(savedDocumentsService.saveDocument(request));
     }
 
-    @DeleteMapping("/{documentId}")
+    @DeleteMapping("/unsave")
     public ResponseEntity<?> unsaveDocument(@RequestBody SavedDocumentsRequest request){
         savedDocumentsService.unsaveDocument(request);
         return ResponseEntity.ok(Map.of("message", "Document unsaved successfully"));

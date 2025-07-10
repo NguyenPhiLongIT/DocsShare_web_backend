@@ -316,4 +316,16 @@ public class DocumentServiceImpl implements DocumentService {
                 return DocumentMapper.toDocumentResponse(documentRepository.save(existingDocument));
         }
 
+        @Override
+        @Transactional
+        public DocumentResponse incrementView(long documentId){
+                Document document = documentRepository.findById(documentId)
+                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + documentId));
+                if (document.getViews() == null) {
+                        document.setViews(0L);
+                }
+                document.setViews(document.getViews() + 1);
+                return DocumentMapper.toDocumentResponse(documentRepository.save(document));
+        }
+
 }

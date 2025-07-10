@@ -126,6 +126,12 @@ public class DocumentController {
         log.debug("[DocumentController] Update moderationStatus in Document with id {}", documentId);
         return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status));
     }
+
+    @PostMapping("/{documentId}/incrementView")
+    public ResponseEntity<DocumentResponse> incrementView(@PathVariable long documentId) {
+        log.debug("[DocumentController] Increment view count for Document with id {}", documentId);
+        return ResponseEntity.ok(documentService.incrementView(documentId));
+    }
 }
 
 

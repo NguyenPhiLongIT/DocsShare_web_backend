@@ -20,4 +20,5 @@ public interface DocumentService {
     DocumentResponse createDocument(DocumentRequest request);
     DocumentResponse updateDocument(long documentId, DocumentRequest request);
     DocumentResponse updateDocumentStatus(long id, DocumentModerationStatus status);
+    DocumentResponse incrementView(long documentId);
 }
