@@ -35,7 +35,7 @@ public class FileController {
         try {
             String fileUrl = googleDriveService.uploadFile(file, folderName);
             return ResponseEntity.ok().body(Map.of("url", fileUrl));
-        } catch (IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Upload failed: " + e.getMessage()));
         }
@@ -47,7 +47,7 @@ public class FileController {
             String fileId = googleDriveService.extractFileIdFromUrl(filePath);
             googleDriveService.deleteFile(fileId);
             return ResponseEntity.ok().body(Map.of("message", "File deleted successfully"));
-        } catch (IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Delete failed: " + e.getMessage()));
         }
