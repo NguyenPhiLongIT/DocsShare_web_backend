@@ -52,7 +52,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .category(forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
                     .createdAt(forumPost.getCreatedAt())
                     .updateAt(forumPost.getUpdateAt())
-                    .readQuantity(forumPost.getReadQuantity())
+                    .views(forumPost.getViews())
                     .tags(forumPost.getTags())
                     .linkDocument(forumPost.getDocument().getSlug())
                     .user(UserResponse.builder()

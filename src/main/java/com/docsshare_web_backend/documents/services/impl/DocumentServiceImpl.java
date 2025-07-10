@@ -2,14 +2,18 @@ package com.docsshare_web_backend.documents.services.impl;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -25,6 +29,8 @@ import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorRespons
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.saved_documents.dto.responses.SavedDocumentsCountProjection;
+import com.docsshare_web_backend.saved_documents.repositories.SavedDocumentsRepository;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
 import com.docsshare_web_backend.commons.utils.SlugUtils;
@@ -50,6 +56,9 @@ public class DocumentServiceImpl implements DocumentService {
         private DocumentCoAuthorService documentCoAuthorService;
 
         @Autowired
+        private SavedDocumentsRepository savedDocumentsRepository;
+
+        @Autowired
         private GoogleDriveService googleDriveService;
 
         private Pageable getPageable(Pageable pageable) {
@@ -57,7 +66,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         public static class DocumentMapper {
-                public static DocumentResponse toDocumentResponse(Document document) {
+                public static DocumentResponse toDocumentResponse(Document document, Long saveCount) {
                         List<DocumentCoAuthorResponse> coAuthors = document.getCoAuthors() != null
                                 ? document.getCoAuthors().stream()
                                 .map(coAuthor -> DocumentCoAuthorResponse.builder()
@@ -68,33 +77,70 @@ public class DocumentServiceImpl implements DocumentService {
                                 : Collections.emptyList(); 
 
                         return DocumentResponse.builder()
-                                        .id(document.getId())
-                                        .title(document.getTitle())
-                                        .description(document.getDescription())
-                                        .filePath(document.getFilePath())
-                                        .slug(document.getSlug())
-                                        .price(document.getPrice())
-                                        .copyrightPath(document.getCopyrightPath())
-                                        .moderationStatus(
-                                                        document.getModerationStatus() != null
-                                                                        ? document.getModerationStatus().toString()
-                                                                        : null)
-                                        .isPublic(document.isPublic())
-                                        .createdAt(document.getCreatedAt())
-                                        .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
-                                        .category(document.getCategory() != null ? document.getCategory().getName()
-                                                        : "")
-                                        .coAuthors(coAuthors)
-                                        .build();
+                                .id(document.getId())
+                                .title(document.getTitle())
+                                .description(document.getDescription())
+                                .filePath(document.getFilePath())
+                                .slug(document.getSlug())
+                                .price(document.getPrice())
+                                .views(document.getViews() != null ? document.getViews() : 0L)
+                                .copyrightPath(document.getCopyrightPath())
+                                .moderationStatus(
+                                                document.getModerationStatus() != null
+                                                                ? document.getModerationStatus().toString()
+                                                                : null)
+                                .isPublic(document.isPublic())
+                                .createdAt(document.getCreatedAt())
+                                .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
+                                .category(document.getCategory() != null ? document.getCategory().getName()
+                                                : "")
+                                .coAuthors(coAuthors)
+                                .saveCount(saveCount != null ? saveCount : 0L)
+                                .build();
                 }
+
+                public static DocumentResponse toDocumentResponse(Document document) {
+                        return toDocumentResponse(document, 0L);
+                }
+                    
         }
+        private List<DocumentResponse> mapDocumentsToResponse(List<Document> documents) {
+                List<Long> documentIds = documents.stream().map(Document::getId).toList();
+
+                Map<Long, Long> saveCountMap = savedDocumentsRepository.countSavesByDocumentIds(documentIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                SavedDocumentsCountProjection::getDocumentId,
+                                SavedDocumentsCountProjection::getSaveCount
+                        ));
+
+                return documents.stream()
+                        .map(doc -> DocumentMapper.toDocumentResponse(
+                                doc,
+                                saveCountMap.getOrDefault(doc.getId(), 0L)
+                        )).toList();
+        }
+
+        private Page<DocumentResponse> mapDocumentsToResponse(Page<Document> page) {
+                List<DocumentResponse> responses = mapDocumentsToResponse(page.getContent());
+                return new PageImpl<>(responses, page.getPageable(), page.getTotalElements());
+        }
+
+        private DocumentResponse mapDocumentToResponse(Document document) {
+                Long saveCount = savedDocumentsRepository.countSavesByDocumentIds(List.of(document.getId())).stream()
+                        .findFirst()
+                        .map(SavedDocumentsCountProjection::getSaveCount)
+                        .orElse(0L);
+
+                return DocumentMapper.toDocumentResponse(document, saveCount);
+        }    
 
         @Override
         @Transactional(readOnly = true)
         public Page<DocumentResponse> getAllDocuments(DocumentFilterRequest request, Pageable pageable) {
                 Specification<Document> spec = DocumentFilter.filterByRequest(request);
-                return documentRepository.findAll(spec, getPageable(pageable))
-                                .map(DocumentMapper::toDocumentResponse);
+                Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
+                return mapDocumentsToResponse(documents);
         }
 
         @Override
@@ -103,7 +149,7 @@ public class DocumentServiceImpl implements DocumentService {
                 Document document = documentRepository.findById(id)
                                 .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
 
-                return DocumentMapper.toDocumentResponse(document);
+                return mapDocumentToResponse(document);
         }
 
         @Override
@@ -116,7 +162,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "Document not found with slug: " + slug));
 
-                return DocumentMapper.toDocumentResponse(document);
+                return mapDocumentToResponse(document);
         }
 
         @Override
@@ -130,8 +176,8 @@ public class DocumentServiceImpl implements DocumentService {
                                 .<Document>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
                                 .and(DocumentFilter.filterByRequest(request));
 
-                return documentRepository.findAll(spec, pageable)
-                                .map(DocumentMapper::toDocumentResponse);
+                Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
+                return mapDocumentsToResponse(documents);
         }
 
         @Override
@@ -145,9 +191,9 @@ public class DocumentServiceImpl implements DocumentService {
                                 .<Document>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
                                                 categoryId))
                                 .and(DocumentFilter.filterByRequest(request));
-
-                return documentRepository.findAll(spec, pageable)
-                                .map(DocumentMapper::toDocumentResponse);
+                
+                Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
+                return mapDocumentsToResponse(documents);
         }
 
         @Override
@@ -158,8 +204,8 @@ public class DocumentServiceImpl implements DocumentService {
                                                 DocumentModerationStatus.PENDING))
                                 .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
 
-                return documentRepository.findAll(spec, pageable)
-                                .map(DocumentMapper::toDocumentResponse);
+                Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
+                return mapDocumentsToResponse(documents);
         }
 
         @Override

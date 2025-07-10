@@ -16,7 +16,7 @@ public class ForumPostResponse {
     private String content;
     private String filePath;
     private Set<String> tags;
-    private Integer readQuantity;
+    private Long views;
     private String isPublic;
     private UserResponse user;
     private String linkDocument;

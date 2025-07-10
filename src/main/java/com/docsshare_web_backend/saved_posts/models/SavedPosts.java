@@ -13,13 +13,20 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 
 @Entity
+@Table(
+    name = "saved_posts",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "forum_post_id"})
+)
 @Setter
 @Getter
 @Builder
@@ -33,9 +40,13 @@ public class SavedPosts {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "forum_post_id", nullable = false)
-    private ForumPost post;
+    private ForumPost forumPost;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 }
