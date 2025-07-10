@@ -81,6 +81,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .title(document.getTitle())
                                 .description(document.getDescription())
                                 .filePath(document.getFilePath())
+                                .fileType(document.getFileType())
                                 .slug(document.getSlug())
                                 .price(document.getPrice())
                                 .views(document.getViews() != null ? document.getViews() : 0L)
@@ -220,6 +221,11 @@ public class DocumentServiceImpl implements DocumentService {
                                                 () -> new EntityNotFoundException("Category not found with id: "
                                                                 + request.getCategoryId()));
 
+                String originalFilename = request.getFile().getOriginalFilename();
+                String fileType = null;
+                if (originalFilename != null && originalFilename.contains(".")) {
+                        fileType = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                }
                 String fileHash;
                 try {
                         fileHash = googleDriveService.calculateSHA256Hash(request.getFile());
@@ -230,10 +236,11 @@ public class DocumentServiceImpl implements DocumentService {
                 String fileUrl;
                 if (!existingDocuments.isEmpty()) {
                         fileUrl = existingDocuments.get(0).getFilePath(); // Dùng file đã tồn tại
+                        fileType = existingDocuments.get(0).getFileType();
                 } else {
                         try {
                                 fileUrl = googleDriveService.uploadFile(request.getFile(), "DocsShareStorage");
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                                 throw new RuntimeException("Failed to upload file to Google Drive", e);
                         }
                 }
@@ -243,6 +250,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .description(request.getDescription())
                                 .filePath(fileUrl)
                                 .fileHash(fileHash)
+                                .fileType(fileType)
                                 .slug(null)
                                 .price(request.getPrice())
                                 .copyrightPath(request.getCopyrightPath())
@@ -281,7 +289,7 @@ public class DocumentServiceImpl implements DocumentService {
                         try {
                                 String fileUrl = googleDriveService.uploadFile(request.getFile(), "documents");
                                 existingDocument.setFilePath(fileUrl);
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                                 throw new RuntimeException("Failed to upload file to Google Drive", e);
                         }
                 }

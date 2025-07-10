@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
@@ -29,54 +30,60 @@ public class GoogleDriveService {
     @Autowired
     private Drive driveService;
 
-    public String uploadFile(MultipartFile file, String folderName) throws IOException {
-        String folderId = createFolderIfNotExists(folderName);
+    @Autowired
+    private GoogleOAuthService googleOAuthService;
+
+    public String uploadFile(MultipartFile file, String folderName) throws IOException, GeneralSecurityException  {
+        Drive drive = googleOAuthService.getDriveServiceUsingRefreshToken();
+
+        String folderId = createFolderIfNotExists(drive, folderName);
         java.io.File convertedFile = convertMultiPartToFile(file);
-        
+
         File fileMetadata = new File();
         fileMetadata.setName(file.getOriginalFilename())
                    .setParents(Collections.singletonList(folderId));
 
         FileContent mediaContent = new FileContent(file.getContentType(), convertedFile);
-        File uploadedFile = driveService.files().create(fileMetadata, mediaContent)
+        File uploadedFile = drive.files().create(fileMetadata, mediaContent)
                 .setFields("id,webViewLink")
                 .execute();
+
         convertedFile.delete();
         return uploadedFile.getWebViewLink();
     }
 
-    private String createFolderIfNotExists(String folderName) throws IOException {
-        // Check if folder exists
+    private String createFolderIfNotExists(Drive drive, String folderName) throws IOException {
         String query = String.format("mimeType='application/vnd.google-apps.folder' and name='%s' and trashed=false", folderName);
-        var result = driveService.files().list()
-            .setQ(query)
-            .setSpaces("drive")
-            .setFields("files(id, name)")
-            .execute();
-
-        // Return existing folder id if found
+        FileList result = drive.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute();
+    
         if (!result.getFiles().isEmpty()) {
-            return result.getFiles().get(0).getId();
+            return result.getFiles().get(0).getId(); // folder đã tồn tại
         }
-
-        return createNewFolder(folderName);
+    
+        return createNewFolder(drive, folderName);
     }
-
-    private String createNewFolder(String folderName) throws IOException {
+    
+    private String createNewFolder(Drive drive, String folderName) throws IOException {
         File fileMetadata = new File();
         fileMetadata.setName(folderName);
         fileMetadata.setMimeType("application/vnd.google-apps.folder");
-
-        File folder = driveService.files().create(fileMetadata)
-            .setFields("id")
-            .execute();
-
+    
+        File folder = drive.files().create(fileMetadata)
+                .setFields("id")
+                .execute();
+    
         return folder.getId();
     }
-
-    public void deleteFile(String fileId) throws IOException {
+    
+    
+    public void deleteFile(String fileId) throws Exception  {
         try {
-            driveService.files().delete(fileId).execute();
+            Drive drive = googleOAuthService.getDriveServiceUsingRefreshToken();
+            drive.files().delete(fileId).execute();
         } catch (IOException e) {
             throw new IOException("Error deleting file: " + e.getMessage(), e);
         }
