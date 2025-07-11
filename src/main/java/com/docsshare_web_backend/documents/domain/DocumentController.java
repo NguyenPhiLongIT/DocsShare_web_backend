@@ -69,6 +69,34 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getDocumentBySlug(slug));
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<DocumentResponse>> getDocumentsByUserId(
+            @PathVariable long userId,
+            @ModelAttribute DocumentFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort) {
+
+        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortOrder);
+        Page<DocumentResponse> documents = documentService.getDocumentsByUserId(request, userId, pageable);
+        return ResponseEntity.ok(documents);
+    }
+
+    @GetMapping("/author/{userId}")
+    public ResponseEntity<Page<DocumentResponse>> getDocumentsByAuthorOrCoAuthorId(
+            @PathVariable long userId,
+            @ModelAttribute DocumentFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort) {
+
+        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortOrder);
+        Page<DocumentResponse> documents = documentService.getDocumentsByAuthorOrCoAuthorId(request, userId, pageable);
+        return ResponseEntity.ok(documents);
+    }
+
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<Page<DocumentResponse>> getDocumentsByCategoryId(
             @PathVariable long categoryId,
@@ -125,6 +153,12 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> updateDocumentStatus(@PathVariable long documentId, DocumentModerationStatus status){
         log.debug("[DocumentController] Update moderationStatus in Document with id {}", documentId);
         return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status));
+    }
+
+    @PostMapping("/{documentId}/incrementView")
+    public ResponseEntity<DocumentResponse> incrementView(@PathVariable long documentId) {
+        log.debug("[DocumentController] Increment view count for Document with id {}", documentId);
+        return ResponseEntity.ok(documentService.incrementView(documentId));
     }
 }
 
