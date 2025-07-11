@@ -3,6 +3,8 @@ package com.docsshare_web_backend.forum_posts.services.impl;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
+import com.docsshare_web_backend.documents.models.Document;
+import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
@@ -33,6 +35,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
+    private DocumentRepository documentRepository;
+    @Autowired
     private ToxicService toxicService;
 
     private Pageable getPageable(Pageable pageable){
@@ -54,7 +58,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .updateAt(forumPost.getUpdateAt())
                     .views(forumPost.getViews())
                     .tags(forumPost.getTags())
-                    .linkDocument(forumPost.getDocument().getSlug())
+                    .linkDocument(forumPost.getDocument() != null ? forumPost.getDocument().getSlug() : null)
                     .user(UserResponse.builder()
                             .id(forumPost.getUser().getId())
                             .name(forumPost.getUser().getName())
@@ -114,6 +118,12 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("Category not found with id: "
                                 + request.getCategoryId()));
+        Document document = null;
+        if (request.getDocumentId() != null) {
+            document = documentRepository.findById(request.getDocumentId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Document not found with id: " + request.getDocumentId()));
+        }
         toxicService.validateTextSafety(request.getTitle(), "Title");
         toxicService.validateTextSafety(request.getContent(), "Content");
 
@@ -125,6 +135,7 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .tags(request.getTags())
                 .user(user)
                 .category(category)
+                .document(document)
                 .build();
         ForumPost savedForumPost = forumPostRepository.save(forumPost);
 
@@ -136,6 +147,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         ForumPost existingForumPost = forumPostRepository.findById(forumPostId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Forum post not found with id: " + forumPostId));
+
 
         toxicService.validateTextSafety(request.getTitle(), "Title");
         toxicService.validateTextSafety(request.getContent(), "Content");

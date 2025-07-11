@@ -26,6 +26,6 @@ public class ForumPostRequest {
     private String type;
     private Boolean isPublic;
     private Long userId;
-    private long documentId;
+    private Long documentId;
     private Long categoryId;
 }

@@ -1,4 +1,5 @@
 package com.docsshare_web_backend.comments.domain;
+import com.docsshare_web_backend.comments.dto.requests.CommentFilterRequest;
 import com.docsshare_web_backend.comments.dto.requests.CommentRequest;
 import com.docsshare_web_backend.comments.dto.requests.UpdateCommentRequest;
 import com.docsshare_web_backend.comments.dto.responses.CommentResponse;
@@ -32,6 +33,7 @@ public class CommentController {
     @GetMapping("/forum-post/{forumPostId}")
     public ResponseEntity<Page<CommentResponse>> getCommentByForumPostId(
             @PathVariable long forumPostId,
+            @ModelAttribute CommentFilterRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "desc") String sort
@@ -39,13 +41,14 @@ public class CommentController {
 
         Sort sortPost = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
         Pageable pageable = PageRequest.of(page, size, sortPost);
-        Page<CommentResponse> comment = commentService.getCommentByForumPostId(forumPostId, pageable);
+        Page<CommentResponse> comment = commentService.getCommentByForumPostId(forumPostId, request, pageable);
         return ResponseEntity.ok(comment);
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<CommentResponse>> getCommentByUserId(
             @PathVariable long userId,
+            @ModelAttribute CommentFilterRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "desc") String sort
@@ -53,7 +56,7 @@ public class CommentController {
 
         Sort sortPost = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
         Pageable pageable = PageRequest.of(page, size, sortPost);
-        Page<CommentResponse> comment = commentService.getCommentByUserId(userId, pageable);
+        Page<CommentResponse> comment = commentService.getCommentByUserId(userId, request, pageable);
         return ResponseEntity.ok(comment);
     }
 
