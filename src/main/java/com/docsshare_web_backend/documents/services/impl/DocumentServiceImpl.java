@@ -16,6 +16,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
@@ -174,12 +176,54 @@ public class DocumentServiceImpl implements DocumentService {
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "User not found with id: " + userId));
                 Specification<Document> spec = Specification
-                                .<Document>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
+                                .<Document>where((root, query, cb) -> cb.equal(root.get("author").get("id"), userId))
                                 .and(DocumentFilter.filterByRequest(request));
 
                 Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
                 return mapDocumentsToResponse(documents);
         }
+
+        @Override
+        @Transactional(readOnly = true)
+        public Page<DocumentResponse> getDocumentsByAuthorOrCoAuthorId(DocumentFilterRequest request, long userId,
+                        Pageable pageable) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "User not found with id: " + userId));
+
+                try {
+                        Specification<Document> spec = buildAuthorOrCoAuthorSpecification(userId)
+                                .and(DocumentFilter.filterByRequest(request));
+                
+                        Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
+                        return mapDocumentsToResponse(documents);
+                } catch (Exception e) {
+                log.error("Error fetching documents for user {}: {}", userId, e.getMessage());
+                throw new RuntimeException("Failed to fetch documents", e);
+                }
+        }
+
+        private Specification<Document> buildAuthorOrCoAuthorSpecification(long userId) {
+                return (root, query, cb) -> {
+                    // Add distinct to prevent duplicate results
+                    query.distinct(true);
+                    
+                    // Create subquery for coauthor check to improve performance
+                    var subquery = query.subquery(Long.class);
+                    var coAuthorRoot = subquery.from(DocumentCoAuthor.class);
+                    subquery.select(coAuthorRoot.get("document").get("id"))
+                            .where(cb.and(
+                                cb.equal(coAuthorRoot.get("user").get("id"), userId),
+                                cb.isTrue(coAuthorRoot.get("isConfirmed"))
+                            ));
+            
+                    // Combine conditions using OR
+                    return cb.or(
+                        cb.equal(root.get("author").get("id"), userId),
+                        cb.in(root.get("id")).value(subquery)
+                    );
+                };
+            }
 
         @Override
         @Transactional(readOnly = true)

@@ -15,6 +15,7 @@ public interface DocumentService {
     DocumentResponse getDocument(long id);
     DocumentResponse getDocumentBySlug(String slug);
     Page<DocumentResponse> getDocumentsByUserId(DocumentFilterRequest request, long userId, Pageable pageable);
+    Page<DocumentResponse> getDocumentsByAuthorOrCoAuthorId(DocumentFilterRequest request, long userId, Pageable pageable);
     Page<DocumentResponse> getDocumentsByCategoryId(DocumentFilterRequest request, long categoryId, Pageable pageable);
     Page<DocumentResponse> getDocumentsNeedApproved(DocumentFilterRequest request, Pageable pageable);
     DocumentResponse createDocument(DocumentRequest request);
