@@ -76,12 +76,12 @@ public class AccountServiceImpl implements AccountService {
                                 "Account not found with id: " + accountId));
 
                 existingAccount.setName(request.getName());
-                existingAccount.setEmail(request.getEmail());
+                // existingAccount.setEmail(request.getEmail());
                 existingAccount.setNation(request.getNation());
                 existingAccount.setDegree(request.getDegree());
                 existingAccount.setCollege(request.getCollege());
                 existingAccount.setAvatar(request.getAvatar());
-                existingAccount.setPassword(request.getPassword()); // nếu cho phép cập nhật mật khẩu
+                // existingAccount.setPassword(request.getPassword()); // nếu cho phép cập nhật mật khẩu
 
                 if (request.getUserType() != null) {
                         existingAccount.setUserType(request.getUserType());
