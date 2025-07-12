@@ -11,9 +11,6 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer 
 from scipy.sparse import hstack
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
 
 # Loading the TFIF vectorizers
 word_tfidf = joblib.load("models/word_tfidf_vectorizer.pkl")
@@ -74,11 +71,7 @@ def word_lemmatizer(text):
     
     return text
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.get_json()
-    # Accept the text as user input
-    text_input = data.get("text", "")
+def predict_toxic(text_input):
     text_cleaned = clean_text(text_input)
     text_data = word_lemmatizer(text_cleaned)
     
@@ -99,10 +92,7 @@ def predict():
         "identity_hate": float(np.round(lr_identity.predict_proba(all_features)[:,1], 2)[0] * 100),
     }
 
-    return jsonify(result)
-    
-if __name__ == "__main__":
-    app.run(debug=True)    
+    return result 
 
 # # For AWS
 # if __name__ == '__main__':
