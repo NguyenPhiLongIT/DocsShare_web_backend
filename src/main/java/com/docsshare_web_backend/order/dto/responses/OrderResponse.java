@@ -18,6 +18,7 @@ public class OrderResponse {
     private LocalDateTime updatedAt;
     private Long userId;
     private Long paymentId;
+    private Double commissionRate;
 
-    private List<OrderDetailResponse> orderDetails; // Danh sách các tài liệu trong đơn hàng
+    private List<OrderDetailResponse> items; // Danh sách các tài liệu trong đơn hàng
 }

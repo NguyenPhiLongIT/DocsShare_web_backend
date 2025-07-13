@@ -1,5 +1,7 @@
 package com.docsshare_web_backend.payment.dto.responses;
 
+import com.docsshare_web_backend.payment.enums.PaymentMethod;
+import com.docsshare_web_backend.payment.enums.PaymentStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -11,16 +13,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentResponse {
     private Long id;
-    private String title;
-    private String description;
-    private String filePath;
-    private String slug;
-    private Double price;
-    private String copyrightPath;
-    private String moderationStatus;
-    private boolean isPublic;
-    private String coAuthor;
+    private Long orderId;
+    private Long amount;
+    private PaymentStatus status;
+    private PaymentMethod paymentMethod;
+    private String transactionId;
     private LocalDateTime createdAt;
-    private String authorName;
-    private String category;
+    private LocalDateTime updatedAt;
 }

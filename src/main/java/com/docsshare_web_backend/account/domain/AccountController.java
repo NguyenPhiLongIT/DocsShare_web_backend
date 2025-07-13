@@ -5,6 +5,8 @@ import com.docsshare_web_backend.account.dto.requests.AccountRequest;
 import com.docsshare_web_backend.account.dto.responses.AccountResponse;
 import com.docsshare_web_backend.account.enums.AccountStatus;
 import com.docsshare_web_backend.account.services.AccountService;
+import com.docsshare_web_backend.users.enums.UserStatus;
+import com.docsshare_web_backend.users.enums.UserType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -104,5 +106,15 @@ public class AccountController {
         log.debug("[AccountController] Update Account with id {}", accountId);
         return ResponseEntity.ok(accountService.updateAccount(accountId, request));
     }
+
+    @PutMapping("/{accountId}/updated/status" )
+    public ResponseEntity<AccountResponse> updateAccountStatus(
+            @PathVariable long accountId,
+            UserType userType, UserStatus status
+    ){
+        log.debug("[AccountController] Update Account with id {}", accountId);
+        return ResponseEntity.ok(accountService.updateAccountStatus(accountId, userType, status));
+    }
+
 
 }

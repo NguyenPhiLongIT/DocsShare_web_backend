@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.payment.dto.requests;
 
+import com.docsshare_web_backend.payment.enums.PaymentMethod;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +16,6 @@ public class PaymentFilterRequest {
     private LocalDate createdDate_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdDate_to;
-    private Boolean isPublic;
-    private PaymentStatus moderationStatus;
+    private PaymentMethod paymentMethod;
+    private PaymentStatus status;
 }

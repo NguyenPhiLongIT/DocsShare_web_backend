@@ -2,9 +2,7 @@ package com.docsshare_web_backend.users.services.impl;
 
 import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
 import com.docsshare_web_backend.documents.repositories.DocumentCoAuthorRepository;
-import com.docsshare_web_backend.users.dto.requests.GoogleAuthRequest;
-import com.docsshare_web_backend.users.dto.requests.LoginRequest;
-import com.docsshare_web_backend.users.dto.requests.RegisterRequest;
+import com.docsshare_web_backend.users.dto.requests.*;
 import com.docsshare_web_backend.users.dto.responses.AuthenticationResponse;
 import com.docsshare_web_backend.users.enums.UserStatus;
 import com.docsshare_web_backend.users.enums.UserType;
@@ -12,8 +10,14 @@ import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.users.services.AuthenticationService;
 
+import com.docsshare_web_backend.users.services.MailService;
+import com.docsshare_web_backend.users.utils.VerificationCodeStore;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailSender;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,9 +34,12 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @Service("AuthenticationServiceImpl")
 @Primary
 public class AuthenticationServiceImpl implements AuthenticationService{
@@ -46,6 +53,13 @@ public class AuthenticationServiceImpl implements AuthenticationService{
     private PasswordEncoder passwordEncoder;
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private VerificationCodeStore codeStore;
+
 
     public static class AuthenticationMapper {
         public static AuthenticationResponse toAuthenticationResponse(User user) {
@@ -151,5 +165,65 @@ public class AuthenticationServiceImpl implements AuthenticationService{
             userRepository.save(user);
         }
         return AuthenticationMapper.toAuthenticationResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long accountId, ChangePasswordRequest request) {
+        User user = userRepository.findById(accountId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + accountId));
+
+        // LOG
+        log.info("🔐 Changing password for userId: {}", user.getId());
+        log.info("🔐 Current encoded password (from DB): {}", user.getPassword());
+        log.info("🔐 Old password (plain text from request): {}", request.getOldPassword());
+
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("❌ Old password is incorrect.");
+        }
+
+        if (request.getOldPassword().equals(request.getNewPassword())) {
+            throw new IllegalArgumentException("❌ New password must be different from the old password.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Gửi mail thông báo đổi mật khẩu
+        mailService.sendChangePasswordNotification(user.getEmail(), user.getName());
+    }
+
+    @Override
+    public void sendForgotPasswordCode(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Email không tồn tại"));
+
+        String code = String.valueOf(new Random().nextInt(900_000) + 100_000);
+        codeStore.saveCode(email, code);
+
+        String content = String.format("Xin chào %s,\n\nMã xác nhận đặt lại mật khẩu của bạn là: %s\nMã này có hiệu lực trong 10 phút.",
+                user.getName(), code);
+        mailService.sendCustomEmail(email, "🔐 Mã xác nhận đặt lại mật khẩu", content);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String email = request.getEmail();
+        String code = request.getCode();
+
+        if (!codeStore.isValid(email, code)) {
+            throw new IllegalArgumentException("❌ Mã xác nhận không hợp lệ hoặc đã hết hạn.");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng."));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        codeStore.remove(email);
+
+        mailService.sendChangePasswordNotification(user.getEmail(), user.getName());
     }
 }

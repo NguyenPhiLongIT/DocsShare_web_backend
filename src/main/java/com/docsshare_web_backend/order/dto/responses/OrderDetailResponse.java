@@ -13,7 +13,6 @@ public class OrderDetailResponse {
     private Long id;
     private Long documentId;
     private String documentTitle;
-    private int quantity;
     private double price;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
