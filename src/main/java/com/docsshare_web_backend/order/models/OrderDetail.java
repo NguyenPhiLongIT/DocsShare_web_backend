@@ -23,7 +23,7 @@ public class OrderDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer price;
+    private Long price;
 
     @CreatedDate
     @Column(updatable = false)

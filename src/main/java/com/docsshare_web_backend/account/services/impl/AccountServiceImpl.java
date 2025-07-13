@@ -7,6 +7,7 @@ import com.docsshare_web_backend.account.enums.AccountStatus;
 import com.docsshare_web_backend.account.filters.AccountFilter;
 import com.docsshare_web_backend.account.repositories.AccountRepository;
 import com.docsshare_web_backend.account.services.AccountService;
+import com.docsshare_web_backend.users.enums.UserStatus;
 import com.docsshare_web_backend.users.enums.UserType;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
@@ -76,21 +77,11 @@ public class AccountServiceImpl implements AccountService {
                                 "Account not found with id: " + accountId));
 
                 existingAccount.setName(request.getName());
-                // existingAccount.setEmail(request.getEmail());
                 existingAccount.setNation(request.getNation());
                 existingAccount.setDegree(request.getDegree());
                 existingAccount.setCollege(request.getCollege());
                 existingAccount.setAvatar(request.getAvatar());
                 // existingAccount.setPassword(request.getPassword()); // nếu cho phép cập nhật mật khẩu
-
-                if (request.getUserType() != null) {
-                        existingAccount.setUserType(request.getUserType());
-                }
-
-                if (request.getStatus() != null) {
-                        existingAccount.setStatus(request.getStatus());
-                }
-
 
                 User updatedAccount = accountRepository.save(existingAccount);
                 return AccountMapper.toAccountResponse(updatedAccount);
@@ -113,4 +104,23 @@ public class AccountServiceImpl implements AccountService {
                 Page<User> users = accountRepository.findByCollegeIgnoreCaseContaining(college, pageable);
                 return users.map(AccountMapper::toAccountResponse);
         }
+
+        @Override
+        @Transactional
+        public AccountResponse updateAccountStatus(long accountId, UserType userType, UserStatus status) {
+                User existingAccount = accountRepository.findById(accountId)
+                        .orElseThrow(() -> new EntityNotFoundException("Account not found with id: " + accountId));
+
+                if (userType != null) {
+                        existingAccount.setUserType(userType);
+                }
+
+                if (status != null) {
+                        existingAccount.setStatus(status);
+                }
+
+                User updatedAccount = accountRepository.save(existingAccount);
+                return AccountMapper.toAccountResponse(updatedAccount);
+        }
+
 }

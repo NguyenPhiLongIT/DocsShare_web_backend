@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.payment.models;
 
+import com.docsshare_web_backend.order.models.Order;
 import com.docsshare_web_backend.payment.enums.PaymentMethod;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
 import jakarta.persistence.*;
@@ -29,7 +30,7 @@ public class Payment {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = true, unique = true)
     private String transactionId;
 
     @Enumerated(EnumType.STRING)
@@ -42,4 +43,9 @@ public class Payment {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @ManyToOne
+    @JoinColumn(name = "order_id") // cột trong bảng payment
+    private Order order;
+
 }
