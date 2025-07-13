@@ -12,6 +12,7 @@ public interface ForumPostService {
     Page<ForumPostResponse> getAllForumPosts(ForumPostFilterRequest request, Pageable pageable);
     ForumPostResponse getForumPostById(long id);
     Page<ForumPostResponse> getForumPostByUserId(ForumPostFilterRequest request, long userId, Pageable pageable);
+    Page<ForumPostResponse> getForumPostByDocumentId(ForumPostFilterRequest request, long documentId, Pageable pageable);
     Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest request, long categoryId, Pageable pageable);
     ForumPostResponse createForumPost(ForumPostRequest request);
     ForumPostResponse updateForumPost(long forumPostId, ForumPostRequest forumPostRequest);

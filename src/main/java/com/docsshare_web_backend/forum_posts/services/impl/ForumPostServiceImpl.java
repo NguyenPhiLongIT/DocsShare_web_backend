@@ -3,6 +3,8 @@ package com.docsshare_web_backend.forum_posts.services.impl;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
+import com.docsshare_web_backend.documents.models.Document;
+import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
@@ -13,6 +15,9 @@ import com.docsshare_web_backend.forum_posts.services.ForumPostService;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.ToxicService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -33,6 +38,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
+    private DocumentRepository documentRepository;
+    @Autowired
     private ToxicService toxicService;
 
     private Pageable getPageable(Pageable pageable){
@@ -49,9 +56,16 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .content(forumPost.getContent())
                     .filePath(forumPost.getFilePath())
                     .isPublic(forumPost.getIsPublic() != null ? forumPost.getIsPublic().toString() : null)
-                    .category(forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
+                    .category(
+                            forumPost.getDocument() != null && forumPost.getDocument().getCategory() != null
+                                    ? forumPost.getDocument().getCategory().getName()
+                                    : (forumPost.getCategory() != null ? forumPost.getCategory().getName() : "")
+                    )
                     .createdAt(forumPost.getCreatedAt())
                     .updateAt(forumPost.getUpdateAt())
+                    .views(forumPost.getViews())
+                    .tags(forumPost.getTags())
+                    .linkDocument(forumPost.getDocument() != null ? forumPost.getDocument().getSlug() : null)
                     .user(UserResponse.builder()
                             .id(forumPost.getUser().getId())
                             .name(forumPost.getUser().getName())
@@ -89,16 +103,87 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest request, long categoryId, Pageable pageable) {
-        categoryRepository.findById(categoryId)
+    public Page<ForumPostResponse> getForumPostByDocumentId(ForumPostFilterRequest request, long documentId, Pageable pageable) {
+        documentRepository.findById(documentId)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Category not found with id: " + categoryId));
+                        "Document not found with id: " + documentId));
+
         Specification<ForumPost> spec = Specification
-                .<ForumPost>where((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId))
-                .and(ForumPostFilter.filterByRequest(request));
-        return forumPostRepository.findAll(spec, pageable).map(ForumPostMapper::toForumPostResponse);
+                .<ForumPost>where((root, query, cb) -> cb.equal(root.get("document").get("id"), documentId));
+
+        // Kết hợp thêm các điều kiện lọc khác nếu có
+        spec = spec.and(ForumPostFilter.filterByRequest(request));
+
+        return forumPostRepository.findAll(spec, pageable)
+                .map(ForumPostMapper::toForumPostResponse);
     }
+
+
+    //    @Override
+//    @Transactional(readOnly = true)
+//    public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest request, long categoryId, Pageable pageable) {
+//        categoryRepository.findById(categoryId)
+//                .orElseThrow(() -> new EntityNotFoundException(
+//                        "Category not found with id: " + categoryId));
+//        Specification<ForumPost> spec = Specification
+//                .<ForumPost>where((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId))
+//                .and(ForumPostFilter.filterByRequest(request));
+//        return forumPostRepository.findAll(spec, pageable).map(ForumPostMapper::toForumPostResponse);
+//    }
+//@Override
+//@Transactional(readOnly = true)
+//public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest request, long categoryId, Pageable pageable) {
+//    categoryRepository.findById(categoryId)
+//            .orElseThrow(() -> new EntityNotFoundException(
+//                    "Category not found with id: " + categoryId));
+//
+//    Specification<ForumPost> spec = Specification
+//            .<ForumPost>where((root, query, cb) -> cb.or(
+//                    cb.and(
+//                            cb.equal(root.get("category").get("id"), categoryId),
+//                            cb.isNull(root.get("document"))
+//                    ),
+//                    cb.equal(root.get("document").get("category").get("id"), categoryId)
+//            ))
+//            .and(ForumPostFilter.filterByRequest(request));
+//
+//    return forumPostRepository.findAll(spec, pageable)
+//            .map(ForumPostMapper::toForumPostResponse);
+//}
+@Override
+@Transactional(readOnly = true)
+public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest request, long categoryId, Pageable pageable) {
+    // Kiểm tra categoryId có tồn tại không
+    categoryRepository.findById(categoryId)
+            .orElseThrow(() -> new EntityNotFoundException(
+                    "Category not found with id: " + categoryId));
+
+    Specification<ForumPost> spec = (root, query, cb) -> {
+        // LEFT JOIN tới document và document.category
+        Join<Object, Object> documentJoin = root.join("document", JoinType.LEFT);
+        Join<Object, Object> documentCategoryJoin = documentJoin.join("category", JoinType.LEFT);
+
+        // Điều kiện: (forum_post.category_id = categoryId AND document IS NULL)
+        Predicate condition1 = cb.and(
+                cb.equal(root.get("category").get("id"), categoryId),
+                cb.isNull(root.get("document"))
+        );
+
+        // Điều kiện: (document.category_id = categoryId)
+        Predicate condition2 = cb.equal(documentCategoryJoin.get("id"), categoryId);
+
+        // Kết hợp 2 điều kiện bằng OR
+        return cb.or(condition1, condition2);
+    };
+
+    // Kết hợp thêm bộ lọc nếu có
+    spec = spec.and(ForumPostFilter.filterByRequest(request));
+
+    return forumPostRepository.findAll(spec, pageable)
+            .map(ForumPostMapper::toForumPostResponse);
+}
+
+
 
     @Override
     @Transactional
@@ -107,10 +192,25 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "User not found with id: " + request.getUserId()));
 
-        var category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(
-                        () -> new EntityNotFoundException("Category not found with id: "
-                                + request.getCategoryId()));
+        Document document = null;
+        Category category = null;
+
+        if (request.getDocumentId() != null) {
+            // Nếu có documentId → bỏ qua category
+            document = documentRepository.findById(request.getDocumentId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Document not found with id: " + request.getDocumentId()));
+        } else {
+            // Nếu không có documentId → bắt buộc phải có categoryId
+            if (request.getCategoryId() == null) {
+                throw new IllegalArgumentException("Category ID must be provided if Document ID is null.");
+            }
+
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Category not found with id: " + request.getCategoryId()));
+        }
+
         toxicService.validateTextSafety(request.getTitle(), "Title");
         toxicService.validateTextSafety(request.getContent(), "Content");
 
@@ -119,8 +219,10 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .content(request.getContent())
                 .filePath(request.getFilePath())
                 .isPublic(request.getIsPublic())
+                .tags(request.getTags())
                 .user(user)
                 .category(category)
+                .document(document)
                 .build();
         ForumPost savedForumPost = forumPostRepository.save(forumPost);
 
@@ -132,6 +234,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         ForumPost existingForumPost = forumPostRepository.findById(forumPostId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Forum post not found with id: " + forumPostId));
+
 
         toxicService.validateTextSafety(request.getTitle(), "Title");
         toxicService.validateTextSafety(request.getContent(), "Content");
@@ -148,6 +251,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         existingForumPost.setContent(request.getContent());
         existingForumPost.setFilePath(request.getFilePath());
         existingForumPost.setIsPublic(request.getIsPublic());
+        existingForumPost.setTags(request.getTags());
 //        exstingForumPost.setCategory(category);
         existingForumPost.setUpdateAt(LocalDateTime.now());
 
