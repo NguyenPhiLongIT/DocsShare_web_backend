@@ -34,4 +34,5 @@ public class DocumentRequest {
     private Long userId;
     private Long categoryId;
     private List<DocumentCoAuthorRequest> coAuthor;
+    private boolean useAiSummary;
 }

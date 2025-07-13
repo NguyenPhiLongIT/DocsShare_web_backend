@@ -8,3 +8,5 @@ langdetect
 sentencepiece
 torch
 PyPDF2
+python-docx
+underthesea
