@@ -6,12 +6,14 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.commons.services.SummaryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,8 @@ import org.springframework.http.MediaType;
 public class DocumentController {
     @Autowired
     private DocumentService documentService;
+    @Autowired
+    private SummaryService summaryService;
 
     @GetMapping
     public ResponseEntity<Page<DocumentResponse>> getAllDocuments(
@@ -159,6 +163,17 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> incrementView(@PathVariable long documentId) {
         log.debug("[DocumentController] Increment view count for Document with id {}", documentId);
         return ResponseEntity.ok(documentService.incrementView(documentId));
+    }
+
+    @PostMapping(value = "/generateSummary", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> generateDescription(@RequestParam("file") MultipartFile file) {
+        String summary = summaryService.summarizeFile(file);
+        if (summary != null) {
+            return ResponseEntity.ok(Map.of("description", summary));
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Could not generate summary"));
+        }
     }
 }
 

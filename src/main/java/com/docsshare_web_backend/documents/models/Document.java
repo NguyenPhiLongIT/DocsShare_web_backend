@@ -27,6 +27,7 @@ public class Document {
     private String slug;
     @Column(nullable = false)
     private String title;
+    @Column(columnDefinition = "TEXT")
     private String description;
     @Column(nullable = false)
     private String filePath;
