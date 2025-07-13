@@ -1,191 +1,86 @@
 package com.docsshare_web_backend.payment.services.impl;
 
+import com.docsshare_web_backend.order.models.Order;
+import com.docsshare_web_backend.order.repositories.OrderRepository;
+import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
+import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
+import com.docsshare_web_backend.payment.enums.PaymentStatus;
+import com.docsshare_web_backend.payment.enums.PaymentMethod;
+import com.docsshare_web_backend.payment.models.Payment;
+import com.docsshare_web_backend.payment.repositories.PaymentRepository;
 import com.docsshare_web_backend.payment.services.PaymentService;
+import com.docsshare_web_backend.users.models.User;
+import com.docsshare_web_backend.users.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
 public class PaymentServiceImpl implements PaymentService {
-//        @Autowired
-//        private NotificationRepository notificationRepository;
-//
-//        @Autowired
-//        private UserRepository userRepository;
-//
-//        @Autowired
-//        private CategoryRepository categoryRepository;
-//
-//        private Pageable getPageable(Pageable pageable) {
-//                return pageable != null ? pageable : Pageable.unpaged();
-//        }
-//
-//        public static class DocumentMapper {
-//                public static NotificationResponse toDocumentResponse(Notification notification) {
-//                        return NotificationResponse.builder()
-//                                        .id(notification.getId())
-//                                        .title(notification.getTitle())
-//                                        .description(notification.getDescription())
-//                                        .filePath(notification.getFilePath())
-//                                        .slug(notification.getSlug())
-//                                        .price(notification.getPrice())
-//                                        .copyrightPath(notification.getCopyrightPath())
-//                                        .moderationStatus(
-//                                                        notification.getModerationStatus() != null
-//                                                                        ? notification.getModerationStatus().toString()
-//                                                                        : null)
-//                                        .isPublic(notification.isPublic())
-//                                        .coAuthor(notification.getCoAuthor() != null ? notification.getCoAuthor().toString()
-//                                                        : null)
-//                                        .createdAt(notification.getCreatedAt())
-//                                        .authorName(notification.getAuthor() != null ? notification.getAuthor().getName() : "")
-//                                        .category(notification.getCategory() != null ? notification.getCategory().getName()
-//                                                        : "")
-//                                        .build();
-//                }
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<NotificationResponse> getAllDocuments(NotificationFilterRequest request, Pageable pageable) {
-//                Specification<Notification> spec = NotificationFilter.filterByRequest(request);
-//                return notificationRepository.findAll(spec, getPageable(pageable))
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public NotificationResponse getAccountById(long id) {
-//                Notification notification = notificationRepository.findById(id)
-//                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-//
-//                return DocumentMapper.toDocumentResponse(notification);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public NotificationResponse getDocumentBySlug(String slug) {
-//                if (slug == null || slug.trim().isEmpty()) {
-//                        throw new IllegalArgumentException("Slug cannot be null or empty");
-//                }
-//                Notification notification = notificationRepository.findBySlug(slug)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Document not found with slug: " + slug));
-//
-//                return DocumentMapper.toDocumentResponse(notification);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<NotificationResponse> getDocumentsByUserId(NotificationFilterRequest request, long userId,
-//                                                               Pageable pageable) {
-//                userRepository.findById(userId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "User not found with id: " + userId));
-//                Specification<Notification> spec = Specification
-//                                .<Notification>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
-//                                .and(NotificationFilter.filterByRequest(request));
-//
-//                return notificationRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<NotificationResponse> getDocumentsByCategoryId(NotificationFilterRequest request, long categoryId,
-//                                                                   Pageable pageable) {
-//                categoryRepository.findById(categoryId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Category not found with id: " + categoryId));
-//                Specification<Notification> spec = Specification
-//                                .<Notification>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
-//                                                categoryId))
-//                                .and(NotificationFilter.filterByRequest(request));
-//
-//                return notificationRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<NotificationResponse> getDocumentsNeedApproved(NotificationFilterRequest request, Pageable pageable) {
-//                Specification<Notification> spec = Specification
-//                                .<Notification>where((root, query, cb) -> cb.equal(root.get("moderationStatus"),
-//                                                NotificationType.COMMENT))
-//                                .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
-//
-//                return notificationRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional
-//        public NotificationResponse createDocument(NotificationRequest request) {
-//                var author = userRepository.findById(request.getUserId())
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "User not found with id: " + request.getUserId()));
-//
-//                var category = categoryRepository.findById(request.getCategoryId())
-//                                .orElseThrow(
-//                                                () -> new EntityNotFoundException("Category not found with id: "
-//                                                                + request.getCategoryId()));
-//
-//                Notification notification = Notification.builder()
-//                                .title(request.getTitle())
-//                                .description(request.getDesciption())
-//                                .filePath(request.getFilePath())
-//                                .slug(request.getSlug())
-//                                .price(request.getPrice())
-//                                .copyrightPath(request.getCopyrightPath())
-//                                .moderationStatus(NotificationType.COMMENT)
-//                                .isPublic(request.isPublic())
-//                                .coAuthor(request.getCoAuthor())
-//                                .author(author)
-//                                .category(category)
-//                                .build();
-//
-//                Notification savedNotification = notificationRepository.save(notification);
-//
-//                return DocumentMapper.toDocumentResponse(savedNotification);
-//        }
-//
-//        @Override
-//        @Transactional
-//        public NotificationResponse updateDocument(long documentId, NotificationRequest request) {
-//                Notification existingNotification = notificationRepository.findById(documentId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Document not found with id: " + documentId));
-//
-//                if (existingNotification.getModerationStatus() == NotificationType.APPROVED ||
-//                                existingNotification.getModerationStatus() == NotificationType.REJECTED) {
-//                        existingNotification.setModerationStatus(NotificationType.COMMENT);
-//                }
-//
-//                existingNotification.setTitle(request.getTitle());
-//                existingNotification.setDescription(request.getDesciption());
-//                existingNotification.setFilePath(request.getFilePath());
-//                existingNotification.setSlug(request.getSlug());
-//                existingNotification.setPrice(request.getPrice());
-//                existingNotification.setCopyrightPath(request.getCopyrightPath());
-//                existingNotification.setCoAuthor(request.getCoAuthor());
-//                existingNotification.setPublic(request.isPublic());
-//
-//                Notification updatedNotification = notificationRepository.save(existingNotification);
-//                return DocumentMapper.toDocumentResponse(updatedNotification);
-//        }
-//
-//        @Override
-//        @Transactional
-//        public NotificationResponse updateDocumentStatus(long id, NotificationType status) {
-//                Notification existingNotification = notificationRepository.findById(id)
-//                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-//                existingNotification.setModerationStatus(status);
-//                if (status == NotificationType.APPROVED) {
-//                        existingNotification.setPublic(true);
-//                } else {
-//                        existingNotification.setPublic(false);
-//                }
-//                return DocumentMapper.toDocumentResponse(notificationRepository.save(existingNotification));
-//        }
 
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private OrderRepository orderRepository; // cần thêm repo này
+
+    public static class PaymentMapper {
+        public static PaymentResponse toPaymentResponse(Payment payment) {
+            return PaymentResponse.builder()
+                    .id(payment.getId())
+                    .orderId(payment.getOrder().getId())
+                    .amount(Long.valueOf(payment.getAmount()))
+                    .transactionId(payment.getTransactionId())
+                    .status(payment.getStatus())
+                    .paymentMethod(payment.getPaymentMethod())
+                    .createdAt(payment.getCreatedAt())
+                    .build();
+        }
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse createPayment(PaymentRequest request) {
+        // 1. Lấy đơn hàng từ orderId
+        Order order = orderRepository.findById(Long.valueOf(request.getOrderId()))
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + request.getOrderId()));
+
+        // 2. Tạo payment
+        Payment payment = Payment.builder()
+                .amount(Math.toIntExact(request.getAmount()))
+                .paymentMethod(request.getPaymentMethod())
+                .status(PaymentStatus.PENDING) // nếu muốn set mặc định
+                .order(order) // liên kết với Order
+                .build();
+        log.info("Payment method received: {}", request.getPaymentMethod());
+
+        // 3. Lưu
+        Payment saved = paymentRepository.save(payment);
+
+        // 4. Trả về DTO
+        return PaymentMapper.toPaymentResponse(saved);
+    }
+
+
+//    @Override
+//    @Transactional(readOnly = true)
+//    public PaymentResponse getPayment(Long id) {
+//        Payment payment = paymentRepository.findById(id)
+//                .orElseThrow(() -> new EntityNotFoundException("Payment not found with id: " + id));
+//        return PaymentMapper.toPaymentResponse(payment);
+//    }
+
+//    @Override
+//    @Transactional
+//    public PaymentResponse updatePaymentStatus(Long id, PaymentStatus status) {
+//        Payment payment = paymentRepository.findById(id)
+//                .orElseThrow(() -> new EntityNotFoundException("Payment not found with id: " + id));
+//        payment.setStatus(status);
+//        return PaymentMapper.toPaymentResponse(paymentRepository.save(payment));
+//    }
 }

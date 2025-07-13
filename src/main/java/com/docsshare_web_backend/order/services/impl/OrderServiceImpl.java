@@ -30,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
+
 @Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -56,6 +58,8 @@ public class OrderServiceImpl implements OrderService {
                                 .documentId(detail.getDocument().getId())
                                 .documentTitle(detail.getDocument().getTitle()) // nếu cần
                                 .price(detail.getPrice())
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
                                 .build();
                 }
         }
@@ -69,7 +73,8 @@ public class OrderServiceImpl implements OrderService {
                                 .updatedAt(order.getUpdatedAt()) // giả sử có trường này trong entity
                                 .userId(order.getUser() != null ? order.getUser().getId() : null)
                                 .paymentId(order.getPayment() != null ? order.getPayment().getId() : null)
-                                .orderDetails(order.getOrderDetails() != null
+                                .commissionRate(order.getCommissionRate())
+                                .items(order.getOrderDetails() != null
                                         ? order.getOrderDetails().stream()
                                         .map(OrderDetailMapper::toOrderDetailResponse)
                                         .toList()
@@ -96,7 +101,15 @@ public class OrderServiceImpl implements OrderService {
                 return OrderMapper.toOrderResponse(order);
         }
 
-        @Override
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getOrderByUserId(Long userId, Pageable pageable) {
+        Specification<Order> spec = (root, query, cb) -> cb.equal(root.get("user").get("id"), userId);
+        return orderRepository.findAll(spec, getPageable(pageable))
+                .map(OrderMapper::toOrderResponse);
+    }
+
+    @Override
         @Transactional
         public OrderResponse createOrder(OrderRequest request) {
                 // 1. Lấy thông tin người dùng theo userId từ request
@@ -113,6 +126,7 @@ public class OrderServiceImpl implements OrderService {
                 // 3. Tạo đơn hàng (Order)
                 Order order = Order.builder()
                         .status(OrderStatus.PENDING)
+                        .commissionRate(request.getCommissionRate())
                         .user(user)
                         .payment(payment)
                         .build();
@@ -126,7 +140,7 @@ public class OrderServiceImpl implements OrderService {
                         return OrderDetail.builder()
                                 .order(savedOrder)
                                 .document(document)
-                                .price(item.getPrice())
+                                .price(Long.valueOf(item.getPrice()))
                                 .build();
                 }).toList();
 

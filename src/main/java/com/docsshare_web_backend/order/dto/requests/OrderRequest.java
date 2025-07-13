@@ -16,6 +16,8 @@ public class OrderRequest {
 
     private Long paymentId;
 
+    private Double commissionRate;
+
     @NotEmpty(message = "Order must have at least one item")
     private List<OrderItemRequest> items;
 
@@ -27,9 +29,6 @@ public class OrderRequest {
     public static class OrderItemRequest {
         @NotNull(message = "Document ID is required")
         private Long documentId;
-
-        @NotNull(message = "Quantity is required")
-        private Integer quantity;
 
         @NotNull(message = "Price is required")
         private Integer price; // Giá tại thời điểm mua

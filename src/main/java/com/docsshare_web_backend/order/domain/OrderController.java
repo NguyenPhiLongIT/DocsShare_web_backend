@@ -96,4 +96,22 @@ public class OrderController {
         log.debug("[OrderController] Update moderationStatus in Order with id {}", orderId);
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<OrderResponse>> getOrdersByUserId(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort
+    ) {
+        log.debug("[OrderController] Get orders for user id {}", userId);
+
+        // Tạo đối tượng Pageable
+        Sort sortDirection = sort.equalsIgnoreCase("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortDirection);
+
+        // Gọi service
+        Page<OrderResponse> orders = orderService.getOrderByUserId(userId, pageable);
+        return ResponseEntity.ok(orders);
+    }
+
 }

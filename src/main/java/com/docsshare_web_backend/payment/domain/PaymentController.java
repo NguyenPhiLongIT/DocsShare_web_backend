@@ -1,6 +1,7 @@
 package com.docsshare_web_backend.payment.domain;
 
 import com.docsshare_web_backend.payment.dto.requests.PaymentFilterRequest;
+import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
 import com.docsshare_web_backend.payment.services.PaymentService;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +18,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/payment")
 public class PaymentController {
-//    @Autowired
-//    private PaymentService paymentService;
+    @Autowired
+    private PaymentService paymentService;
 //
 //    @GetMapping
 //    public ResponseEntity<Page<PaymentResponse>> getAllPayments(
@@ -72,12 +74,12 @@ public class PaymentController {
 //        return ResponseEntity.ok(documents);
 //    }
 //
-//    @PostMapping("/create")
-//    public ResponseEntity<OrderResponse> createDocument(@RequestBody OrderRequest orderRequest) {
-//        log.debug("[DocumentController] Create Document {}", orderRequest);
-//        return ResponseEntity.status(HttpStatus.CREATED)
-//                .body(orderService.createDocument(orderRequest));
-//    }
+    @PostMapping("/create")
+    public ResponseEntity<PaymentResponse> createDocument(@RequestBody PaymentRequest paymentRequest) {
+        log.debug("[PaymentDocument] Create Payment {}", paymentRequest);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(paymentService.createPayment(paymentRequest));
+    }
 //
 //    @PutMapping("/{documentId}/update")
 //    public ResponseEntity<OrderResponse> updateDocument(
