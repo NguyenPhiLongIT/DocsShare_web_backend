@@ -75,6 +75,20 @@ public class ForumPostController {
         return ResponseEntity.ok(forumPost);
     }
 
+    @GetMapping("/document/{documentId}")
+    public ResponseEntity<Page<ForumPostResponse>> getForumPostByDocumentId(
+            @PathVariable long documentId,
+            @ModelAttribute ForumPostFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort
+    ){
+        Sort sortPost = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortPost);
+        Page<ForumPostResponse> forumPost = forumPostService.getForumPostByDocumentId(request, documentId, pageable);
+        return ResponseEntity.ok(forumPost);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<ForumPostResponse> createForumPost(
             @RequestBody ForumPostRequest forumPostRequest

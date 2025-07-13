@@ -51,6 +51,7 @@ public class CommentServiceImpl implements CommentService {
                     .id(comment.getId())
                     .content(comment.getContent())
                     .type(comment.getType() != null ? comment.getType().toString() : null)
+                    .isHiden(comment.isHiden())
                     .createdAt(comment.getCreatedAt())
                     .updateAt(comment.getUpdateAt())
                     .user(UserResponse.builder()
@@ -132,12 +133,18 @@ public class CommentServiceImpl implements CommentService {
 
         toxicService.validateTextSafety(request.getContent(), "Contend");
 
+        CommentType type = request.getType() != null
+                ? CommentType.valueOf(request.getType())
+                : CommentType.NORMAL;
+
+        boolean isHidden = CommentType.REPORT.equals(type);
+
+
         Comment comment = Comment.builder()
                 .content(request.getContent())
-                .type(request.getType() != null
-                        ? CommentType.valueOf(request.getType())
-                        : CommentType.NORMAL)
+                .type(type)
                 .user(user)
+                .isHiden(isHidden)
                 .forumPost(forumPost)
                 .build();
         Comment savedComment = commentRepository.save(comment);

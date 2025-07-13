@@ -17,6 +17,7 @@ public class CommentResponse {
     private Long id;
     private String content;
     private String type;
+    private Boolean isHiden;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
     private UserResponse user;
