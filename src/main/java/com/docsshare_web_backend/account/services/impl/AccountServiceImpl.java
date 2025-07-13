@@ -81,6 +81,7 @@ public class AccountServiceImpl implements AccountService {
                 existingAccount.setDegree(request.getDegree());
                 existingAccount.setCollege(request.getCollege());
                 existingAccount.setAvatar(request.getAvatar());
+                // existingAccount.setPassword(request.getPassword()); // nếu cho phép cập nhật mật khẩu
 
                 User updatedAccount = accountRepository.save(existingAccount);
                 return AccountMapper.toAccountResponse(updatedAccount);

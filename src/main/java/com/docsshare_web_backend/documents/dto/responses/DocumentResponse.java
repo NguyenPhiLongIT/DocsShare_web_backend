@@ -20,13 +20,17 @@ public class DocumentResponse {
     private String description;
     private String filePath;
     private String slug;
+    private String fileType;
+    private Long views;
     private Double price;
     private String copyrightPath;
     private String moderationStatus;
+    private String rejectedReason;
     private boolean isPublic;
     private LocalDateTime createdAt;
     private String authorName;
     private String authorId;
     private String category;
     private List<DocumentCoAuthorResponse> coAuthors;
+    private Long saveCount;
 }

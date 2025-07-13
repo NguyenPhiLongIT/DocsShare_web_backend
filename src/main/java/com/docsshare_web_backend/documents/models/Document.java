@@ -27,12 +27,13 @@ public class Document {
     private String slug;
     @Column(nullable = false)
     private String title;
+    @Column(columnDefinition = "TEXT")
     private String description;
     @Column(nullable = false)
     private String filePath;
     private String fileHash;
     private String fileType;
-    private Integer reads;
+    private Long views;
     private Double price;
     private String copyrightPath;
     @Column(nullable = false)
