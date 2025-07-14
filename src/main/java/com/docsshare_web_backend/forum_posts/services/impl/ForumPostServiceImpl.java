@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -265,6 +266,16 @@ public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest r
         ForumPost forumPost = forumPostRepository.findById(forumPostId)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found with id: " + forumPostId));
         forumPostRepository.delete(forumPost);
+    }
+
+    @Override
+    public Set<String> getTagsByDocumentId(Long documentId) {
+        return forumPostRepository.findDistinctTagsByDocumentId(documentId);
+    }
+
+    @Override
+    public Set<String> getTagsByCategoryId(Long categoryId) {
+        return forumPostRepository.findDistinctTagsByCategoryId(categoryId);
     }
 
 }
