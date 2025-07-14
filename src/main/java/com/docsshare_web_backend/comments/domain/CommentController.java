@@ -4,8 +4,6 @@ import com.docsshare_web_backend.comments.dto.requests.CommentRequest;
 import com.docsshare_web_backend.comments.dto.requests.UpdateCommentRequest;
 import com.docsshare_web_backend.comments.dto.responses.CommentResponse;
 import com.docsshare_web_backend.comments.services.CommentService;
-import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
-import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
