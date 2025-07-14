@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -84,17 +85,15 @@ public class FollowController {
                 .body(followService.createFollow(followRequest));
     }
 
-    @DeleteMapping("/{followingId}/unfollow")
-    public ResponseEntity<String> deleteFollow(
+    @DeleteMapping("/api/v1/follow/{followingId}/unfollow")
+    public ResponseEntity<Map<String, String>> unfollow(
             @PathVariable Long followingId,
             @RequestParam Long followerId) {
 
-        log.debug("[FollowController] Delete Follow - followerId: {}, followingId: {}", followerId, followingId);
-
         followService.unfollow(followerId, followingId);
-
-        return ResponseEntity.ok("Hủy follow thành công");
+        return ResponseEntity.ok(Map.of("message", "Hủy follow thành công"));
     }
+
 
     // Lấy danh sách người mình đang theo dõi
     @GetMapping("/following/{followerId}")
