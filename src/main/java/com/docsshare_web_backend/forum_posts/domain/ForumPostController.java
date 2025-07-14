@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -122,4 +123,15 @@ public class ForumPostController {
             ));
         }
     }
+
+    @GetMapping("/tags/by-category")
+    public ResponseEntity<Set<String>> getTagsByCategory(@RequestParam Long categoryId) {
+        return ResponseEntity.ok(forumPostService.getTagsByCategoryId(categoryId));
+    }
+
+    @GetMapping("/tags/by-document")
+    public ResponseEntity<Set<String>> getTagsByDocument(@RequestParam Long documentId){
+        return ResponseEntity.ok(forumPostService.getTagsByDocumentId(documentId));
+    }
+
 }

@@ -6,6 +6,9 @@ import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.Set;
 
 @Service
 public interface ForumPostService {
@@ -17,5 +20,7 @@ public interface ForumPostService {
     ForumPostResponse createForumPost(ForumPostRequest request);
     ForumPostResponse updateForumPost(long forumPostId, ForumPostRequest forumPostRequest);
     void deleteForumPost(long forumPostId);
+    Set<String> getTagsByCategoryId(Long categoryId);
+    Set<String> getTagsByDocumentId(Long documentId);
 
 }
