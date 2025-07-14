@@ -28,4 +28,5 @@ public class ForumPostRequest {
     private Long userId;
     private Long documentId;
     private Long categoryId;
+
 }
