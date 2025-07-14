@@ -1,15 +1,12 @@
-package com.docsshare_web_backend.saved_posts.models;
+package com.docsshare_web_backend.saved_posts.repositories;
 
-import com.docsshare_web_backend.saved_documents.dto.responses.SavedDocumentsCountProjection;
-import com.docsshare_web_backend.saved_documents.models.SavedDocuments;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-
 import com.docsshare_web_backend.saved_posts.dto.responses.SavePostsCountProjection;
+import com.docsshare_web_backend.saved_posts.models.SavedPosts;
 
 import java.util.List;
 import java.util.Optional;
