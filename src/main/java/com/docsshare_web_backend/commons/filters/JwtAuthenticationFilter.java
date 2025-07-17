@@ -45,18 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        List<String> doNotFilterList = new java.util.ArrayList<>(List.of(
-                "/swagger-ui.html",
-                "/swagger-ui/**",
-                "/v3/api-docs/**",
-                "/swagger-resources/**",
-                "/webjars/**"
-        ));
-
-        if (request.getMethod().equals(HttpMethod.POST.name())) {
-            List<String> doNotFilterListByPostMethod = new ArrayList<>(List.of("/api/v1/auth"));
-            doNotFilterList.addAll(doNotFilterListByPostMethod);
-        }
+        List<String> doNotFilterList = List.of(
+            "/swagger-ui/index.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register"
+        );
 
         return doNotFilterList.stream().anyMatch(path::startsWith);
     }

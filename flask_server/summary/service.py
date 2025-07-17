@@ -98,6 +98,6 @@ phobert_summarizer = PhoBERTSummarizer()
 def summarize_text(raw_text):
     text = extract_text(raw_text)
     preprocessed = preprocess_for_summary(text)
-    tfidf_selected = tfidf_filter(preprocessed, ratio=0.3)
-    summary = phobert_summarizer.summarize(tfidf_selected, ratio=0.3)
+    # tfidf_selected = tfidf_filter(preprocessed, ratio=0.3)
+    summary = phobert_summarizer.summarize(preprocessed, ratio=0.2)
     return summary
