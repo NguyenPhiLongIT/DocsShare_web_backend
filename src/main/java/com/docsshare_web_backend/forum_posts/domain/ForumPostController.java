@@ -134,4 +134,10 @@ public class ForumPostController {
         return ResponseEntity.ok(forumPostService.getTagsByDocumentId(documentId));
     }
 
+    @PostMapping("/incrementView/{forumPostId}")
+    public ResponseEntity<ForumPostResponse> incrementView(@PathVariable long forumPostId) {
+        log.debug("[ForumPostController] Increment view count for Forum post with id {}", forumPostId);
+        return ResponseEntity.ok(forumPostService.incrementView(forumPostId));
+    }
+
 }
