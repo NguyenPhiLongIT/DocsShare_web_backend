@@ -153,90 +153,15 @@ public class OrderServiceImpl implements OrderService {
                 return OrderMapper.toOrderResponse(savedOrder);
         }
 
+    @Override
+    public Page<OrderResponse> getOrderByAuthorId(Long authorId, Pageable pageable) {
+        log.debug("[OrderServiceImpl] Get orders for author/co-author id {}", authorId);
 
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public OrderResponse getDocumentBySlug(String slug) {
-//                if (slug == null || slug.trim().isEmpty()) {
-//                        throw new IllegalArgumentException("Slug cannot be null or empty");
-//                }
-//                Order order = orderRepository.findBySlug(slug)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Document not found with slug: " + slug));
-//
-//                return DocumentMapper.toDocumentResponse(order);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<OrderResponse> getDocumentsByUserId(OrderFilterRequest request, long userId,
-//                                                        Pageable pageable) {
-//                userRepository.findById(userId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "User not found with id: " + userId));
-//                Specification<Order> spec = Specification
-//                                .<Order>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
-//                                .and(OrderFilter.filterByRequest(request));
-//
-//                return orderRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<OrderResponse> getDocumentsByCategoryId(OrderFilterRequest request, long categoryId,
-//                                                            Pageable pageable) {
-//                categoryRepository.findById(categoryId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Category not found with id: " + categoryId));
-//                Specification<Order> spec = Specification
-//                                .<Order>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
-//                                                categoryId))
-//                                .and(OrderFilter.filterByRequest(request));
-//
-//                return orderRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
-//        @Override
-//        @Transactional(readOnly = true)
-//        public Page<OrderResponse> getDocumentsNeedApproved(OrderFilterRequest request, Pageable pageable) {
-//                Specification<Order> spec = Specification
-//                                .<Order>where((root, query, cb) -> cb.equal(root.get("moderationStatus"),
-//                                                OrderStatus.PENDING))
-//                                .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
-//
-//                return orderRepository.findAll(spec, pageable)
-//                                .map(DocumentMapper::toDocumentResponse);
-//        }
-//
+        Page<Order> orders = orderRepository.findOrdersByAuthorOrCoauthor(authorId, pageable);
 
-//        @Override
-//        @Transactional
-//        public OrderResponse updateDocument(long documentId, OrderRequest request) {
-//                Order existingOrder = orderRepository.findById(documentId)
-//                                .orElseThrow(() -> new EntityNotFoundException(
-//                                                "Document not found with id: " + documentId));
-//
-//                if (existingOrder.getModerationStatus() == OrderStatus.APPROVED ||
-//                                existingOrder.getModerationStatus() == OrderStatus.CANCELLED) {
-//                        existingOrder.setModerationStatus(OrderStatus.PENDING);
-//                }
-//
-//                existingOrder.setTitle(request.getTitle());
-//                existingOrder.setDescription(request.getDesciption());
-//                existingOrder.setFilePath(request.getFilePath());
-//                existingOrder.setSlug(request.getSlug());
-//                existingOrder.setPrice(request.getPrice());
-//                existingOrder.setCopyrightPath(request.getCopyrightPath());
-//                existingOrder.setCoAuthor(request.getCoAuthor());
-//                existingOrder.setPublic(request.isPublic());
-//
-//                Order updatedOrder = orderRepository.save(existingOrder);
-//                return DocumentMapper.toDocumentResponse(updatedOrder);
-//        }
-//
+        return orders.map(OrderMapper::toOrderResponse);
+    }
+
         @Override
         @Transactional
         public OrderResponse updateOrderStatus(long id, OrderStatus status) {
