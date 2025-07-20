@@ -22,5 +22,6 @@ public interface ForumPostService {
     void deleteForumPost(long forumPostId);
     Set<String> getTagsByCategoryId(Long categoryId);
     Set<String> getTagsByDocumentId(Long documentId);
+    ForumPostResponse incrementView(long forumPostId);
 
 }

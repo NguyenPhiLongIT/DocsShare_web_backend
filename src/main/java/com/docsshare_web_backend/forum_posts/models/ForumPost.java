@@ -3,6 +3,7 @@ package com.docsshare_web_backend.forum_posts.models;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.comments.models.Comment;
 import com.docsshare_web_backend.documents.models.Document;
+import com.docsshare_web_backend.saved_posts.models.SavedPosts;
 import com.docsshare_web_backend.users.models.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -61,4 +62,8 @@ public class ForumPost {
 
     @OneToMany(mappedBy = "forumPost", cascade = CascadeType.ALL)
     private List<Comment> comments;
+
+    @OneToMany(mappedBy = "forumPost", cascade = CascadeType.ALL)
+    private List<SavedPosts> savedPosts;
+
 }

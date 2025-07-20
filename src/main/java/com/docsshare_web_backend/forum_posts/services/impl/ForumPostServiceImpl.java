@@ -64,7 +64,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                     )
                     .createdAt(forumPost.getCreatedAt())
                     .updateAt(forumPost.getUpdateAt())
-                    .views(forumPost.getViews())
+                    .views(forumPost.getViews() != null ? forumPost.getViews() : 0)
+                    .commentsCount(forumPost.getComments() != null ? forumPost.getComments().size() : 0L)
+                    .savedCount(forumPost.getSavedPosts() != null ? forumPost.getSavedPosts().size() : 0L)
                     .tags(forumPost.getTags())
                     .linkDocument(forumPost.getDocument() != null ? forumPost.getDocument().getSlug() : null)
                     .user(UserResponse.builder()
@@ -271,6 +273,17 @@ public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest r
     @Override
     public Set<String> getTagsByDocumentId(Long documentId) {
         return forumPostRepository.findDistinctTagsByDocumentId(documentId);
+    }
+
+    @Override
+    public ForumPostResponse incrementView(long forumPostId) {
+        ForumPost forumPost = forumPostRepository.findById(forumPostId)
+                .orElseThrow(() -> new EntityNotFoundException("Forum post not found with id: " + forumPostId));
+        if(forumPost.getViews()==null){
+            forumPost.setViews(0L);
+        }
+        forumPost.setViews(forumPost.getViews() + 1);
+        return ForumPostMapper.toForumPostResponse(forumPostRepository.save(forumPost));
     }
 
     @Override

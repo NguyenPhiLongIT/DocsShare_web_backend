@@ -39,12 +39,12 @@ public class SavedPostsController {
         return ResponseEntity.ok(savedPosts);
     }
 
-    @PostMapping("/")
+    @PostMapping("/save")
     public ResponseEntity<SavedPostsResponse> savePost(@RequestBody SavedPostsRequest request) {
         return ResponseEntity.ok(savedPostsService.savePost(request));
     }
 
-    @DeleteMapping("")
+    @DeleteMapping("/unsave")
     public ResponseEntity<?> unsavePost(@RequestBody SavedPostsRequest request){
         savedPostsService.unsavePost(request);
         return ResponseEntity.ok(Map.of("message", "Forum post unsaved successfully"));
