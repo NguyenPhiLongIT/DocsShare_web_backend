@@ -3,8 +3,6 @@ package com.docsshare_web_backend.documents.filters;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.commons.filters.CommonFilter;
-
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
 import java.util.ArrayList;
@@ -29,6 +27,9 @@ public class DocumentFilter {
                 } else if (request.getPrice() == 1.0) {
                     predicates.add(criteriaBuilder.greaterThan(root.get("price"), 0.0));
                 }
+            }
+            if (request.getIsPublic() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isPublic"), request.getIsPublic()));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

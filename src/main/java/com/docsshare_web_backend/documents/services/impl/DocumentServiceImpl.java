@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
@@ -84,6 +85,7 @@ public class DocumentServiceImpl implements DocumentService {
                                                 document.getModerationStatus() != null
                                                                 ? document.getModerationStatus().toString()
                                                                 : null)
+                                .rejectedReason(document.getRejectedReason())
                                 .isPublic(document.isPublic())
                                 .createdAt(document.getCreatedAt())
                                 .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
@@ -350,14 +352,21 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Override
         @Transactional
-        public DocumentResponse updateDocumentStatus(long id, DocumentModerationStatus status) {
+        public DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request) {
                 Document existingDocument = documentRepository.findById(id)
-                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                        .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+
+                DocumentModerationStatus status = request.getStatus();
                 existingDocument.setModerationStatus(status);
+
                 if (status == DocumentModerationStatus.APPROVED) {
-                        existingDocument.setPublic(true);
+                        existingDocument.setRejectedReason(null); // clear nếu từng bị từ chối
                 } else {
-                        existingDocument.setPublic(false);
+                        if (status == DocumentModerationStatus.REJECTED) {
+                                existingDocument.setRejectedReason(request.getRejectedReason());
+                        } else {
+                                existingDocument.setRejectedReason(null);
+                        }
                 }
                 return DocumentMapper.toDocumentResponse(documentRepository.save(existingDocument));
         }
