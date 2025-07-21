@@ -75,13 +75,6 @@ public class CommonFilter {
             fieldName = field.getName();
             Class<?> fieldType = field.getType();
 
-            if (fieldName.equalsIgnoreCase("vehicleType") && value instanceof String) {
-                return criteriaBuilder.equal(
-                    root.get("vehicleType").get("name"),
-                    ((String) value).trim()
-                );
-            }
-
             if (fieldName.equals("q") && value instanceof String && !((String) value).trim().isEmpty()) {
                 return handleQueryString((String) value, root, criteriaBuilder, entityClass);
             }
