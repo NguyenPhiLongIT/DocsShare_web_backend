@@ -2,6 +2,7 @@ package com.docsshare_web_backend.documents.models;
 
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.categories.models.Category;
+import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 
 import jakarta.persistence.*;
@@ -32,7 +33,9 @@ public class Document {
     @Column(nullable = false)
     private String filePath;
     private String fileHash;
-    private String fileType;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private DocumentFileType fileType;
     private Long views;
     private Double price;
     private String copyrightPath;
