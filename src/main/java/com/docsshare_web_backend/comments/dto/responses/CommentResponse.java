@@ -26,5 +26,6 @@ public class CommentResponse {
     private UserResponse user;
     private Long forumPostId;
 //    private ForumPostResponse forumPost;
+    private Integer repliesCount;
     private List<CommentResponse> replies;
 }

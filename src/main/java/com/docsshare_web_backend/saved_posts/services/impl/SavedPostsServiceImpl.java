@@ -57,7 +57,12 @@ public class SavedPostsServiceImpl implements SavedPostsService {
                                     .name(savedPosts.getForumPost().getUser().getName())
                                     .avatar(savedPosts.getForumPost().getUser().getAvatar())
                                     .build())
-                            .linkDocument(savedPosts.getForumPost().getDocument().getSlug())
+                            .linkDocument(
+                                    savedPosts.getForumPost().getDocument() != null && savedPosts.getForumPost().getDocument().getSlug() != null
+                                            ? savedPosts.getForumPost().getDocument().getSlug()
+                                            : null
+                            )
+
                             .category(savedPosts.getForumPost().getCategory() != null ? savedPosts.getForumPost().getCategory().getName() : "")
                             .createdAt(savedPosts.getForumPost().getCreatedAt())
                             .updateAt(savedPosts.getForumPost().getUpdateAt())

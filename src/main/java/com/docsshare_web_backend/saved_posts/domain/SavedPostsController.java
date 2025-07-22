@@ -44,7 +44,7 @@ public class SavedPostsController {
         return ResponseEntity.ok(savedPostsService.savePost(request));
     }
 
-    @DeleteMapping("/unsave")
+    @PostMapping("/unsave")
     public ResponseEntity<?> unsavePost(@RequestBody SavedPostsRequest request){
         savedPostsService.unsavePost(request);
         return ResponseEntity.ok(Map.of("message", "Forum post unsaved successfully"));
