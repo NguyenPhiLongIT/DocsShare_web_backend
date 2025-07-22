@@ -17,6 +17,7 @@ public class OrderResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long userId;
+    private String userName;
     private Long paymentId;
     private Double commissionRate;
 

@@ -3,6 +3,7 @@ package com.docsshare_web_backend.documents.domain;
 import com.docsshare_web_backend.documents.dto.requests.DocumentCoAuthorRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.services.DocumentService;
@@ -154,9 +155,9 @@ public class DocumentController {
     }
 
     @PutMapping("/{documentId}/updateStatus")
-    public ResponseEntity<DocumentResponse> updateDocumentStatus(@PathVariable long documentId, DocumentModerationStatus status){
-        log.debug("[DocumentController] Update moderationStatus in Document with id {}", documentId);
-        return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status));
+    public ResponseEntity<DocumentResponse> updateStatus(@PathVariable Long documentId, @RequestBody DocumentUpdateStatusRequest request) {
+        DocumentResponse updatedDoc = documentService.updateDocumentStatus(documentId, request);
+        return ResponseEntity.ok(updatedDoc);
     }
 
     @PostMapping("/{documentId}/incrementView")

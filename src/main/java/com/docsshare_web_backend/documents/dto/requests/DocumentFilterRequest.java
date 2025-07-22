@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.documents.enums.DocumentFileType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,5 +20,6 @@ public class DocumentFilterRequest {
     private LocalDate createdDate_to;
     private Boolean isPublic;
     private DocumentModerationStatus moderationStatus;
+    private DocumentFileType fileType;
     private Double price;
 }

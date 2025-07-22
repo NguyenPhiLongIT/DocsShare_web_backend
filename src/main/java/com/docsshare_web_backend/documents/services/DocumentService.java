@@ -2,8 +2,8 @@ package com.docsshare_web_backend.documents.services;
 
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +20,6 @@ public interface DocumentService {
     Page<DocumentResponse> getDocumentsNeedApproved(DocumentFilterRequest request, Pageable pageable);
     DocumentResponse createDocument(DocumentRequest request);
     DocumentResponse updateDocument(long documentId, DocumentRequest request);
-    DocumentResponse updateDocumentStatus(long id, DocumentModerationStatus status);
+    DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request);
     DocumentResponse incrementView(long documentId);
 }

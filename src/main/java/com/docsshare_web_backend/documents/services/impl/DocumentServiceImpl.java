@@ -15,7 +15,9 @@ import org.springframework.data.jpa.domain.Specification;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
+import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
 import com.docsshare_web_backend.documents.models.Document;
@@ -74,7 +76,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .title(document.getTitle())
                                 .description(document.getDescription())
                                 .filePath(document.getFilePath())
-                                .fileType(document.getFileType())
+                                .fileType(document.getFileType() != null ? document.getFileType().toString() : null)
                                 .slug(document.getSlug())
                                 .price(document.getPrice())
                                 .views(document.getViews() != null ? document.getViews() : 0L)
@@ -83,6 +85,7 @@ public class DocumentServiceImpl implements DocumentService {
                                                 document.getModerationStatus() != null
                                                                 ? document.getModerationStatus().toString()
                                                                 : null)
+                                .rejectedReason(document.getRejectedReason())
                                 .isPublic(document.isPublic())
                                 .createdAt(document.getCreatedAt())
                                 .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
@@ -257,9 +260,16 @@ public class DocumentServiceImpl implements DocumentService {
                                                                 + request.getCategoryId()));
 
                 String originalFilename = request.getFile().getOriginalFilename();
-                String fileType = null;
+                String fileExtension = null;
+                DocumentFileType fileType = null;
+
                 if (originalFilename != null && originalFilename.contains(".")) {
-                        fileType = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                        fileExtension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                        try {
+                                fileType = DocumentFileType.fromExtension(fileExtension);
+                        } catch (IllegalArgumentException e) {
+                                throw new RuntimeException("Unsupported file type: " + fileExtension, e);
+                        }
                 }
                 String fileHash;
                 try {
@@ -279,21 +289,24 @@ public class DocumentServiceImpl implements DocumentService {
                                 throw new RuntimeException("Failed to upload file to Google Drive", e);
                         }
                 }
-
+                DocumentModerationStatus moderationStatus = switch (author.getUserType()) {
+                        case ADMIN, STAFF -> DocumentModerationStatus.APPROVED;
+                        default -> DocumentModerationStatus.PENDING;
+                    };
                 Document document = Document.builder()
-                                .title(request.getTitle())
-                                .description(request.getDescription())
-                                .filePath(fileUrl)
-                                .fileHash(fileHash)
-                                .fileType(fileType)
-                                .slug(null)
-                                .price(request.getPrice())
-                                .copyrightPath(request.getCopyrightPath())
-                                .moderationStatus(DocumentModerationStatus.PENDING)
-                                .isPublic(request.isPublic())
-                                .author(author)
-                                .category(category)
-                                .build();
+                        .title(request.getTitle())
+                        .description(request.getDescription())
+                        .filePath(fileUrl)
+                        .fileHash(fileHash)
+                        .fileType(fileType)
+                        .slug(null)
+                        .price(request.getPrice())
+                        .copyrightPath(request.getCopyrightPath())
+                        .moderationStatus(moderationStatus)
+                        .isPublic(request.isPublic())
+                        .author(author)
+                        .category(category)
+                        .build();
 
                 Document savedDocument = documentRepository.save(document);
                 savedDocument.setSlug(SlugUtils.generateSlug(savedDocument.getTitle(), savedDocument.getId()));
@@ -339,14 +352,21 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Override
         @Transactional
-        public DocumentResponse updateDocumentStatus(long id, DocumentModerationStatus status) {
+        public DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request) {
                 Document existingDocument = documentRepository.findById(id)
-                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                        .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+
+                DocumentModerationStatus status = request.getStatus();
                 existingDocument.setModerationStatus(status);
+
                 if (status == DocumentModerationStatus.APPROVED) {
-                        existingDocument.setPublic(true);
+                        existingDocument.setRejectedReason(null); // clear nếu từng bị từ chối
                 } else {
-                        existingDocument.setPublic(false);
+                        if (status == DocumentModerationStatus.REJECTED) {
+                                existingDocument.setRejectedReason(request.getRejectedReason());
+                        } else {
+                                existingDocument.setRejectedReason(null);
+                        }
                 }
                 return DocumentMapper.toDocumentResponse(documentRepository.save(existingDocument));
         }

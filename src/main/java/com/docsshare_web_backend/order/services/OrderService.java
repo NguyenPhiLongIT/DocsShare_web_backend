@@ -14,6 +14,7 @@ public interface OrderService {
     Page<OrderResponse> getAllOrder(OrderFilterRequest request, Pageable pageable);
     OrderResponse getOrder(long id);
     Page<OrderResponse> getOrderByUserId(Long userId, Pageable pageable);
+    Page<OrderResponse> getOrderByAuthorId(Long userId, Pageable pageable);
     OrderResponse createOrder(OrderRequest request);
 //    OrderResponse getOrderBySlug(String slug);
 //    Page<OrderResponse> getOrderByUserId(OrderFilterRequest request, long userId, Pageable pageable);
