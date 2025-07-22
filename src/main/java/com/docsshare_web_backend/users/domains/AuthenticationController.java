@@ -109,7 +109,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(authenticationService.googleLogin(request));
     }
 
-    @PutMapping("/{accountId}/change-password")
+    @PostMapping("/{accountId}/change-password")
     public ResponseEntity<?> changePassword(
             @PathVariable Long accountId,
             @Valid @RequestBody ChangePasswordRequest request

@@ -72,6 +72,7 @@ public class OrderServiceImpl implements OrderService {
                                 .createdAt(order.getCreatedAt())
                                 .updatedAt(order.getUpdatedAt()) // giả sử có trường này trong entity
                                 .userId(order.getUser() != null ? order.getUser().getId() : null)
+                                .userName(order.getUser() != null ? order.getUser().getName():null)
                                 .paymentId(order.getPayment() != null ? order.getPayment().getId() : null)
                                 .commissionRate(order.getCommissionRate())
                                 .items(order.getOrderDetails() != null
