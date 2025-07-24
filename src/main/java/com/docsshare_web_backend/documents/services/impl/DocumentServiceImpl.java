@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
@@ -321,10 +322,14 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Override
         @Transactional
-        public DocumentResponse updateDocument(long documentId, DocumentRequest request) {
+        public DocumentResponse updateDocument(long documentId, DocumentUpdateRequest request) {
                 Document existingDocument = documentRepository.findById(documentId)
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "Document not found with id: " + documentId));
+                
+                var category = categoryRepository.findById(request.getCategoryId())
+                                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "
+                                                + request.getCategoryId()));
 
                 if (existingDocument.getModerationStatus() == DocumentModerationStatus.APPROVED ||
                                 existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED) {
@@ -333,20 +338,18 @@ public class DocumentServiceImpl implements DocumentService {
 
                 existingDocument.setTitle(request.getTitle());
                 existingDocument.setDescription(request.getDescription());
-                if (request.getFile() != null) {
-                        try {
-                                String fileUrl = googleDriveService.uploadFile(request.getFile(), "documents");
-                                existingDocument.setFilePath(fileUrl);
-                        } catch (Exception e) {
-                                throw new RuntimeException("Failed to upload file to Google Drive", e);
-                        }
-                }
-                existingDocument.setSlug(request.getSlug());
+                existingDocument.setSlug(SlugUtils.generateSlug(request.getTitle(), documentId));
                 existingDocument.setPrice(request.getPrice());
                 existingDocument.setCopyrightPath(request.getCopyrightPath());
                 existingDocument.setPublic(request.isPublic());
+                existingDocument.setCategory(category);
 
                 Document updatedDocument = documentRepository.save(existingDocument);
+                if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
+                        for (var coAuthorRequest : request.getCoAuthor()) {
+                                documentCoAuthorService.addCoAuthor(updatedDocument.getId(), coAuthorRequest);
+                        }
+                }
                 return DocumentMapper.toDocumentResponse(updatedDocument);
         }
 

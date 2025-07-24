@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.categories.dto.responses;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -17,6 +18,8 @@ public class CategoryResponse {
     private Long id;
     private String name;
     private String description;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Long parentId;
     private List<CategoryResponse> children;
 }

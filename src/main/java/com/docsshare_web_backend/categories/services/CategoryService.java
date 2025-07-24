@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 public interface CategoryService {
     List<CategoryResponse> getAllRootCategories();
     List<CategoryResponse> getSubCategories(long parentId);
+    CategoryResponse getCategoryById(long categoryId);
     CategoryResponse createCategory(CategoryRequest request);
     CategoryResponse updateCategory(long categoryId, CategoryRequest request);
     CategoryResponse deleteCategory(long categoryId);
