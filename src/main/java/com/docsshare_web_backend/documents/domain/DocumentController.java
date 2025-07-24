@@ -3,6 +3,7 @@ package com.docsshare_web_backend.documents.domain;
 import com.docsshare_web_backend.documents.dto.requests.DocumentCoAuthorRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
+import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
@@ -149,7 +150,7 @@ public class DocumentController {
     @PutMapping("/{documentId}/update")
     public ResponseEntity<DocumentResponse> updateDocument(
             @PathVariable long documentId,
-            @RequestBody DocumentRequest request) {
+            @RequestBody DocumentUpdateRequest request) {
         log.debug("[DocumentController] Update Document with id {}", documentId);
         return ResponseEntity.ok(documentService.updateDocument(documentId, request));
     }
