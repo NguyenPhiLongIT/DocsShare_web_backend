@@ -1,6 +1,10 @@
 package com.docsshare_web_backend.categories.models;
 
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import com.docsshare_web_backend.documents.models.Document;
 
@@ -23,6 +27,12 @@ public class Category {
     private String name;
     
     private String description;
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updateAt;
     
     @ManyToOne
     @JoinColumn(name = "parent_id")

@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.categories.services.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +31,8 @@ public class CategoryServiceImpl implements CategoryService{
                     .id(category.getId())
                     .name(category.getName())
                     .description(category.getDescription())
+                    .createdAt(category.getCreatedAt())
+                    .updatedAt(category.getUpdateAt())
                     .parentId(category.getParent() != null ? category.getParent().getId() : null)
                     .children(category.getChildren() != null
                             ? category.getChildren().stream()
@@ -62,6 +65,14 @@ public class CategoryServiceImpl implements CategoryService{
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public CategoryResponse getCategoryById(long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("category not found with id: " + categoryId));
+        return CategoryMapper.toCategoryResponse(category);
+    }
+
+    @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
         Category parentCategory = null;
@@ -75,6 +86,8 @@ public class CategoryServiceImpl implements CategoryService{
                 .name(request.getName())
                 .description(request.getDescription())
                 .parent(parentCategory)
+                .createdAt(LocalDateTime.now())
+                .updateAt(LocalDateTime.now())
                 .build();
 
         Category savedCategory = categoryRepository.save(newCategory);
@@ -97,6 +110,7 @@ public class CategoryServiceImpl implements CategoryService{
         existingCategory.setName(request.getName());
         existingCategory.setDescription(request.getDescription());
         existingCategory.setParent(parentCategory);
+        existingCategory.setUpdateAt(LocalDateTime.now());
 
         Category updatedCategory = categoryRepository.save(existingCategory);
         return CategoryMapper.toCategoryResponse(updatedCategory);

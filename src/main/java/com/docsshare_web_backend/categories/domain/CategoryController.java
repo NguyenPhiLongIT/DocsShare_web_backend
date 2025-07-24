@@ -40,6 +40,12 @@ public class CategoryController {
         return ResponseEntity.ok(subCategories);
     }
 
+    @GetMapping("/{categoryId}")
+    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable long categoryId) {
+        CategoryResponse category = categoryService.getCategoryById(categoryId);
+        return ResponseEntity.ok(category);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<CategoryResponse> createCategory(@RequestBody CategoryRequest request) {
         CategoryResponse createdCategory = categoryService.createCategory(request);
