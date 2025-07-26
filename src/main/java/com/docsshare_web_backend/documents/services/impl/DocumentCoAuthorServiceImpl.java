@@ -69,4 +69,16 @@ public class DocumentCoAuthorServiceImpl implements DocumentCoAuthorService {
         DocumentCoAuthor savedCoAuthor = documentCoAuthorRepository.save(newCoAuthor);
         return DocumentCoAuthorMapper.toDocumentCoAuthorResponse(savedCoAuthor);
     }
+
+    @Override
+    @Transactional
+    public void removeCoAuthor(Long documentId, String email) {
+        DocumentCoAuthor existingCoAuthor = documentCoAuthorRepository
+                .findByDocumentIdAndEmail(documentId, email)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Co-author with email " + email + " not found for document id: " + documentId));
+
+        documentCoAuthorRepository.delete(existingCoAuthor);
+    }
+
 }

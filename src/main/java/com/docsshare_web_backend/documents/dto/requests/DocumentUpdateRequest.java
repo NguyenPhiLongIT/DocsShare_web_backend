@@ -23,5 +23,4 @@ public class DocumentUpdateRequest {
     private boolean isPublic;
     private Long userId;
     private Long categoryId;
-    private List<DocumentCoAuthorRequest> coAuthor;
 }

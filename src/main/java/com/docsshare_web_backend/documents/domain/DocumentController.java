@@ -5,13 +5,16 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
+import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.commons.services.SummaryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -25,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +52,8 @@ public class DocumentController {
     private DocumentService documentService;
     @Autowired
     private SummaryService summaryService;
+    @Autowired
+    private DocumentCoAuthorService documentCoAuthorService;
 
     @GetMapping
     public ResponseEntity<Page<DocumentResponse>> getAllDocuments(
@@ -163,7 +169,6 @@ public class DocumentController {
 
     @PostMapping("/{documentId}/incrementView")
     public ResponseEntity<DocumentResponse> incrementView(@PathVariable long documentId) {
-        log.debug("[DocumentController] Increment view count for Document with id {}", documentId);
         return ResponseEntity.ok(documentService.incrementView(documentId));
     }
 
@@ -176,6 +181,21 @@ public class DocumentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Could not generate summary"));
         }
+    }
+
+    @PostMapping("/addCoAuthor")
+    public ResponseEntity<DocumentCoAuthorResponse> addCoAuthor(@RequestParam long documentId, 
+                @RequestBody @Valid DocumentCoAuthorRequest request) {
+        DocumentCoAuthorResponse response = documentCoAuthorService.addCoAuthor(documentId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @DeleteMapping("/removeCoAuthor")
+    public ResponseEntity<Void> removeCoAuthor(
+            @RequestParam Long documentId,
+            @RequestParam String email) {
+        documentCoAuthorService.removeCoAuthor(documentId, email);
+        return ResponseEntity.noContent().build();
     }
 }
 
