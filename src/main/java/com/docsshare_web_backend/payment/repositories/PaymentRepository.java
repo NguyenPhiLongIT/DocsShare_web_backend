@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository
     extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
-    //Optional<Payment> findBySlug(String slug);
+    Optional<Payment> findByTransactionId(String transactionId);
+
 }
