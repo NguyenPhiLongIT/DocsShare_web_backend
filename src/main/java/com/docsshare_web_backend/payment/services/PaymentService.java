@@ -6,9 +6,12 @@ import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
-import java.awt.print.Pageable;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @Service
 public interface PaymentService {
    PaymentResponse createPayment(PaymentRequest paymentRequest);
+   Page<PaymentResponse> getAllPayments(PaymentFilterRequest request,Pageable pageable);
+   PaymentResponse getPaymentById(@PathVariable("paymentId") Long paymentId);
 }
