@@ -2,10 +2,12 @@ package com.docsshare_web_backend.payment.services.impl;
 
 import com.docsshare_web_backend.order.models.Order;
 import com.docsshare_web_backend.order.repositories.OrderRepository;
+import com.docsshare_web_backend.payment.dto.requests.PaymentFilterRequest;
 import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
 import com.docsshare_web_backend.payment.enums.PaymentMethod;
+import com.docsshare_web_backend.payment.filters.PaymentFilter;
 import com.docsshare_web_backend.payment.models.Payment;
 import com.docsshare_web_backend.payment.repositories.PaymentRepository;
 import com.docsshare_web_backend.payment.services.PaymentService;
@@ -14,6 +16,10 @@ import com.docsshare_web_backend.users.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +35,10 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired
     private OrderRepository orderRepository; // cần thêm repo này
 
+    private Pageable getPageable(Pageable pageable) {
+        return pageable != null ? pageable : Pageable.unpaged();
+    }
+
     public static class PaymentMapper {
         public static PaymentResponse toPaymentResponse(Payment payment) {
             return PaymentResponse.builder()
@@ -42,6 +52,22 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getAllPayments(PaymentFilterRequest request, Pageable pageable) {
+        Specification<Payment> spec = PaymentFilter.filterByRequest(request);
+        return paymentRepository.findAll(spec,getPageable(pageable)).map(PaymentMapper::toPaymentResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentById(Long id) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found with id: " + id));
+        return PaymentMapper.toPaymentResponse(payment);
+    }
+
 
     @Override
     @Transactional
@@ -59,6 +85,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
         log.info("Payment method received: {}", request.getPaymentMethod());
 
+        order.setPayment(payment);
+        orderRepository.save(order);
+
         // 3. Lưu
         Payment saved = paymentRepository.save(payment);
 
@@ -67,20 +96,4 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
 
-//    @Override
-//    @Transactional(readOnly = true)
-//    public PaymentResponse getPayment(Long id) {
-//        Payment payment = paymentRepository.findById(id)
-//                .orElseThrow(() -> new EntityNotFoundException("Payment not found with id: " + id));
-//        return PaymentMapper.toPaymentResponse(payment);
-//    }
-
-//    @Override
-//    @Transactional
-//    public PaymentResponse updatePaymentStatus(Long id, PaymentStatus status) {
-//        Payment payment = paymentRepository.findById(id)
-//                .orElseThrow(() -> new EntityNotFoundException("Payment not found with id: " + id));
-//        payment.setStatus(status);
-//        return PaymentMapper.toPaymentResponse(paymentRepository.save(payment));
-//    }
 }

@@ -1,8 +1,12 @@
 package com.docsshare_web_backend.payment.domain;
 
+import com.docsshare_web_backend.payment.dto.requests.MomoIpnRequest;
 import com.docsshare_web_backend.payment.dto.requests.PaymentFilterRequest;
 import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
+import com.docsshare_web_backend.payment.dto.responses.MomoPaymentResponse;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
+import com.docsshare_web_backend.payment.enums.PaymentStatus;
+import com.docsshare_web_backend.payment.services.MomoPaymentService;
 import com.docsshare_web_backend.payment.services.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,78 +24,70 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
     @Autowired
     private PaymentService paymentService;
-//
-//    @GetMapping
-//    public ResponseEntity<Page<PaymentResponse>> getAllPayments(
-//            @ModelAttribute PaymentFilterRequest request,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "9") int size,
-//            @RequestParam(defaultValue = "desc") String sort) {
-//        log.debug("Received request to get all documents with filter: {}, page: {}, size: {}, sort: {}",
-//                request, page, size, sort);
-//        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
-//        Pageable pageable = PageRequest.of(page, size, sortOrder);
-//        Page<PaymentResponse> documents = paymentService.getAllDocuments(request, pageable);
-//        return ResponseEntity.ok(documents);
-//    }
-//
-//    @GetMapping("/{paymentId}")
-//    public ResponseEntity<PaymentResponse> getDocument(@PathVariable long documentId) {
-//        log.debug("[DocumentController] Get Document with id {}", documentId);
-//        return ResponseEntity.ok(paymentService.getDocument(documentId));
-//    }
 
-//    @GetMapping("/slug/{slug}")
-//    public ResponseEntity<OrderResponse> getDocumentBySlug(@PathVariable String slug) {
-//        log.debug("[DocumentController] Get Document by slug {}", slug);
-//        return ResponseEntity.ok(orderService.getDocumentBySlug(slug));
-//    }
-//
-//    @GetMapping("/category/{categoryId}")
-//    public ResponseEntity<Page<OrderResponse>> getDocumentsByCategoryId(
-//            @PathVariable long categoryId,
-//            @ModelAttribute OrderFilterRequest request,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "9") int size,
-//            @RequestParam(defaultValue = "desc") String sort) {
-//
-//        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
-//        Pageable pageable = PageRequest.of(page, size, sortOrder);
-//        Page<OrderResponse> documents = orderService.getDocumentsByCategoryId(request, categoryId, pageable);
-//        return ResponseEntity.ok(documents);
-//    }
-//
-//    @GetMapping("/need-approved")
-//    public ResponseEntity<Page<OrderResponse>> getDocumentsNeedApproved(
-//            @ModelAttribute OrderFilterRequest request,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "9") int size,
-//            @RequestParam(defaultValue = "desc") String sort){
-//
-//        Sort sortOrder = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
-//        Pageable pageable = PageRequest.of(page, size, sortOrder);
-//        Page<OrderResponse> documents = orderService.getDocumentsNeedApproved(request, pageable);
-//        return ResponseEntity.ok(documents);
-//    }
-//
+    @Autowired
+    private MomoPaymentService momoPaymentService;
+
+    @GetMapping
+    public ResponseEntity<Page<PaymentResponse>> getAllPayments(
+            @ModelAttribute PaymentFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort
+    ){
+        log.debug("Received request to get all payments with filter: {} , page: {}, size: {}, sort: {}",
+                request, page, size, sort);
+        Sort sortPayment = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortPayment);
+        Page<PaymentResponse> payments = paymentService.getAllPayments(request, pageable);
+        return ResponseEntity.ok(payments);
+    }
+
+    @GetMapping("/{paymentId}")
+    public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable("paymentId") Long paymentId) {
+        log.debug("Received request to get payment with ID: {}", paymentId);
+        PaymentResponse payment = paymentService.getPaymentById(paymentId);
+        return ResponseEntity.ok(payment);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<PaymentResponse> createDocument(@RequestBody PaymentRequest paymentRequest) {
         log.debug("[PaymentDocument] Create Payment {}", paymentRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(paymentService.createPayment(paymentRequest));
     }
-//
-//    @PutMapping("/{documentId}/update")
-//    public ResponseEntity<OrderResponse> updateDocument(
-//            @PathVariable long documentId,
-//            @RequestBody OrderRequest request) {
-//        log.debug("[DocumentController] Update Document with id {}", documentId);
-//        return ResponseEntity.ok(orderService.updateDocument(documentId, request));
-//    }
-//
-//    @PutMapping("/{documentId}/updateStatus")
-//    public ResponseEntity<OrderResponse> updateDocumentStatus(@PathVariable long documentId, PaymentStatus status){
-//        log.debug("[DocumentController] Update moderationStatus in Document with id {}", documentId);
-//        return ResponseEntity.ok(orderService.updateDocumentStatus(documentId, status));
-//    }
+
+    @GetMapping("/momo/create")
+    public ResponseEntity<MomoPaymentResponse> createMomoPayment(
+            @RequestParam Long orderId,
+            @RequestParam Integer amount) throws Exception {
+        log.debug("[MoMo] Create Payment for OrderId: {}, Amount: {}", orderId, amount);
+        MomoPaymentResponse response = momoPaymentService.createPayment(orderId, amount);
+        return ResponseEntity.ok(response);
+    }
+
+    // IPN callback từ MoMo
+    @PostMapping("/momo/ipn")
+    public ResponseEntity<String> handleMomoIpn(@RequestBody MomoIpnRequest ipnRequest) {
+        log.debug("[MoMo] IPN Callback: {}", ipnRequest);
+        if (ipnRequest.getResultCode() == 0) {
+            momoPaymentService.updatePaymentStatus(ipnRequest.getOrderId(), PaymentStatus.SUCCESS);
+            return ResponseEntity.ok("IPN received - SUCCESS");
+        } else {
+            momoPaymentService.updatePaymentStatus(ipnRequest.getOrderId(), PaymentStatus.FAILED);
+            return ResponseEntity.ok("IPN received - FAILED");
+        }
+    }
+
+    // Redirect user sau khi thanh toán (chỉ cho Web)
+    @GetMapping("/momo/return")
+    public ResponseEntity<String> paymentReturn(@RequestParam String orderId, @RequestParam int resultCode) {
+        log.debug("[MoMo] Return URL Callback - OrderId: {}, ResultCode: {}", orderId, resultCode);
+        if (resultCode == 0) {
+            return ResponseEntity.ok("Thanh toán thành công cho OrderId: " + orderId);
+        } else {
+            return ResponseEntity.ok("Thanh toán thất bại cho OrderId: " + orderId);
+        }
+    }
+
 }

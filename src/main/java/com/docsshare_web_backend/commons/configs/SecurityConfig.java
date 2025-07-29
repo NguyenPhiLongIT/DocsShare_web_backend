@@ -34,6 +34,12 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    private final List<String> ALLOWED_ORIGINS = List.of(
+            "http://localhost:5173",
+            "https://localweb.phuongy.works",
+            "https://fe.phuongy.works",
+            "https://be.phuongy.works"
+    );
     private final List<String> UNSECURED_URLS = List.of(
             "/**",
             "/api/v1/**",
@@ -72,7 +78,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList("https://4df253b741fa.ngrok-free.app/swagger-ui/index.html?gidzl=8qZG9Ep1KNqaLjScxjnKUYHGrIxqZ5HqR0o5AAQ202LkNuKgfT85S3vIWNZptmTmRrE2967-kRTixyXGVW#/",
+                "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setExposedHeaders(List.of("Authorization"));
