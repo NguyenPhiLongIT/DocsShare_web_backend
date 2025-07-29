@@ -15,6 +15,7 @@ import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.categories.services.CategoryService;
 import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.docsshare_web_backend.documents.models.Document;
+import com.docsshare_web_backend.commons.services.ToxicService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 public class CategoryServiceImpl implements CategoryService{
     @Autowired
     CategoryRepository categoryRepository;
+    @Autowired
+    ToxicService toxicService;
 
     public static class CategoryMapper {
         public static CategoryResponse toCategoryResponse(Category category) {
@@ -81,7 +84,7 @@ public class CategoryServiceImpl implements CategoryService{
                     .orElseThrow(() -> new EntityNotFoundException(
                             "Parent category not found with id: " + request.getParentId()));
         }
-
+        toxicService.validateTextSafety(request.getName(), "Name");
         Category newCategory = Category.builder()
                 .name(request.getName())
                 .description(request.getDescription())

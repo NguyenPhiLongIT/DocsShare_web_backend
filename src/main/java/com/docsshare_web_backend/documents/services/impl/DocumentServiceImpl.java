@@ -92,6 +92,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
                                 .category(document.getCategory() != null ? document.getCategory().getName()
                                                 : "")
+                                .categoryId(document.getCategory().getId())
                                 .coAuthors(coAuthors)
                                 .saveCount(saveCount != null ? saveCount : 0L)
                                 .build();
@@ -345,11 +346,6 @@ public class DocumentServiceImpl implements DocumentService {
                 existingDocument.setCategory(category);
 
                 Document updatedDocument = documentRepository.save(existingDocument);
-                if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
-                        for (var coAuthorRequest : request.getCoAuthor()) {
-                                documentCoAuthorService.addCoAuthor(updatedDocument.getId(), coAuthorRequest);
-                        }
-                }
                 return DocumentMapper.toDocumentResponse(updatedDocument);
         }
 

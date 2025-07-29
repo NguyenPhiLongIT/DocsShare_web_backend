@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DocumentCoAuthorRepository 
@@ -13,4 +14,5 @@ public interface DocumentCoAuthorRepository
         
     boolean existsByDocumentIdAndEmail(Long documentId, String email);
     List<DocumentCoAuthor> findByNameAndEmail(String name, String email);
+    Optional<DocumentCoAuthor> findByDocumentIdAndEmail(Long documentId, String email);
 }
