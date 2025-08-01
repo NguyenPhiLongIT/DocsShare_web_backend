@@ -9,9 +9,9 @@ import java.time.LocalDate;
 @Getter
 public class ForumPostFilterRequest {
     private String q;
-//    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-//    private LocalDate createdDate_from;
-//    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-//    private LocalDate createdDate_to;
+   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+   private LocalDate createdAt_from;
+   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+   private LocalDate createdAt_to;
     private Boolean isPublic;
 }

@@ -13,9 +13,9 @@ import java.time.LocalDate;
 public class PaymentFilterRequest {
     private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_from;
+    private LocalDate createdAt_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_to;
+    private LocalDate createdAt_to;
     private PaymentMethod paymentMethod;
     private PaymentStatus status;
 }

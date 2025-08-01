@@ -14,9 +14,9 @@ import java.time.LocalDate;
 public class AccountFilterRequest {
     private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_from;
+    private LocalDate createdAt_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_to;
+    private LocalDate createdAt_to;
     private UserType userType;
     private UserStatus status;
 }
