@@ -5,17 +5,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.docsshare_web_backend.categories.dto.requests.CategoryFilterRequest;
 import com.docsshare_web_backend.categories.dto.requests.CategoryRequest;
 import com.docsshare_web_backend.categories.dto.responses.CategoryResponse;
+import com.docsshare_web_backend.categories.filters.CategoryFilter;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.categories.services.CategoryService;
-import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
-import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.commons.services.ToxicService;
+import com.docsshare_web_backend.documents.filters.DocumentFilter;
+import com.docsshare_web_backend.documents.models.Document;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -48,10 +51,12 @@ public class CategoryServiceImpl implements CategoryService{
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getAllRootCategories() {
-        List<Category> rootCategories = categoryRepository.findAll().stream()
-                .filter(category -> category.getParent() == null)
-                .collect(Collectors.toList());
+    public List<CategoryResponse> getAllRootCategories(CategoryFilterRequest request) {
+        Specification<Category> spec = CategoryFilter.filterByRequest(request)
+                .and((root, query, cb) -> cb.isNull(root.get("parent")));
+
+        List<Category> rootCategories = categoryRepository.findAll(spec);
+
         return rootCategories.stream()
                 .map(CategoryMapper::toCategoryResponse)
                 .collect(Collectors.toList());

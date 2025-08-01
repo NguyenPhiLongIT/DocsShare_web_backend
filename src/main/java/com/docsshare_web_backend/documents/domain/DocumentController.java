@@ -7,19 +7,18 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.commons.services.SummaryService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -54,6 +53,8 @@ public class DocumentController {
     private SummaryService summaryService;
     @Autowired
     private DocumentCoAuthorService documentCoAuthorService;
+    @Autowired 
+    private ExcelExportService excelExportService;
 
     @GetMapping
     public ResponseEntity<Page<DocumentResponse>> getAllDocuments(
@@ -196,6 +197,17 @@ public class DocumentController {
             @RequestParam String email) {
         documentCoAuthorService.removeCoAuthor(documentId, email);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export")
+    public void exportExcel(@ModelAttribute DocumentFilterRequest filterRequest,
+        HttpServletResponse response
+    ) {
+        // Dùng Pageable.unpaged() để lấy toàn bộ
+        Page<DocumentResponse> page = documentService.getAllDocuments(filterRequest, Pageable.unpaged());
+        List<DocumentResponse> data = page.getContent();
+
+        new ExcelExportService<DocumentResponse>().export(response, "document_export", data);
     }
 }
 

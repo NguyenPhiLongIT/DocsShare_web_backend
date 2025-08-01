@@ -1,24 +1,16 @@
-package com.docsshare_web_backend.notification.dto.requests;
-
-import com.docsshare_web_backend.notification.enums.NotificationType;
+package com.docsshare_web_backend.categories.dto.requests;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
-@Getter
 @Setter
-public class NotificationFilterRequest {
-
-    private String q; // Tìm kiếm theo tên
-
+@Getter
+public class CategoryFilterRequest {
+    private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdAt_from;
-
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdAt_to;
-
-    private Boolean isRead;
-    private NotificationType status;
 }

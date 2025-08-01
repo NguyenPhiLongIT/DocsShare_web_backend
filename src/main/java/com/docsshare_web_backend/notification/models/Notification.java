@@ -26,8 +26,14 @@ public class Notification {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(length = 50, nullable = false)
     private NotificationType type;
+
+    @Column
+    private String link;
+
+    @Column
+    private Long targetId;
 
     @Column(nullable = false)
     private boolean isRead;

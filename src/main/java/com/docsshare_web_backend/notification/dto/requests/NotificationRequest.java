@@ -11,7 +11,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationRequest {
-
     @NotBlank(message = "Content should not be blank")
     @NotNull(message = "Content should not be null")
     private String content;
