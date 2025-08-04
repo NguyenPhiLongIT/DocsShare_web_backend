@@ -1,4 +1,5 @@
 package com.docsshare_web_backend.documents.services.impl;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,12 @@ import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorRespons
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.notification.enums.NotificationType;
+import com.docsshare_web_backend.notification.models.Notification;
+import com.docsshare_web_backend.notification.repositories.NotificationRepository;
 import com.docsshare_web_backend.saved_documents.dto.responses.SavedDocumentsCountProjection;
 import com.docsshare_web_backend.saved_documents.repositories.SavedDocumentsRepository;
+import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
 import com.docsshare_web_backend.commons.utils.SlugUtils;
@@ -56,6 +61,9 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Autowired
         private GoogleDriveService googleDriveService;
+
+        @Autowired
+        private NotificationRepository notificationRepository;
 
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
@@ -354,15 +362,40 @@ public class DocumentServiceImpl implements DocumentService {
         public DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request) {
                 Document existingDocument = documentRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                
+                User sender = userRepository.findById(request.getSenderId())
+                        .orElseThrow(() -> new EntityNotFoundException("Sender not found"));
 
                 DocumentModerationStatus status = request.getStatus();
                 existingDocument.setModerationStatus(status);
 
                 if (status == DocumentModerationStatus.APPROVED) {
                         existingDocument.setRejectedReason(null); // clear nếu từng bị từ chối
+                        Notification notification = Notification.builder()
+                                .content("Document \"" + existingDocument.getTitle() + "\" has been approved.")
+                                .createdAt(LocalDateTime.now())
+                                .isRead(false)
+                                .link("/documents/" + existingDocument.getSlug())
+                                .targetId(existingDocument.getId())
+                                .type(NotificationType.APPROVED)
+                                .user(existingDocument.getAuthor())
+                                .sender(sender)
+                                .build();
+                        notificationRepository.save(notification);
                 } else {
                         if (status == DocumentModerationStatus.REJECTED) {
                                 existingDocument.setRejectedReason(request.getRejectedReason());
+                                Notification notification = Notification.builder()
+                                        .content("Document \"" + existingDocument.getTitle() + "\" has been rejected")
+                                        .createdAt(LocalDateTime.now())
+                                        .isRead(false)
+                                        .link("/documents/" + existingDocument.getSlug())
+                                        .targetId(existingDocument.getId())
+                                        .type(NotificationType.REJECTED)
+                                        .user(existingDocument.getAuthor())
+                                        .sender(sender)
+                                        .build();
+                                notificationRepository.save(notification);
                         } else {
                                 existingDocument.setRejectedReason(null);
                         }
