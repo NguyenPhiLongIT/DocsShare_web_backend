@@ -20,5 +20,5 @@ public class NotificationFilterRequest {
     private LocalDate createdAt_to;
 
     private Boolean isRead;
-    private NotificationType status;
+    private NotificationType type;
 }

@@ -28,4 +28,18 @@ public class NotificationController {
         notificationService.shareContent(request);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<Page<NotificationResponse>> getNotificationsByUserId(
+            @PathVariable long userId,
+            @ModelAttribute NotificationFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort
+    ){
+        Sort sortPost = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortPost);
+        Page<NotificationResponse> notification = notificationService.getNotificationsByUserId(request, userId, pageable);
+        return ResponseEntity.ok(notification);
+    }
 }

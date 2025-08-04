@@ -57,13 +57,15 @@ public class NotificationServiceImpl implements NotificationService {
                     .targetId(notification.getTargetId())
                     .createdAt(notification.getCreatedAt())
                     .senderName(notification.getUser().getName())
+                    .senderId(notification.getSender().getId())
                     .userId(notification.getUser().getId())
                     .build();
         }
     }
-    private Notification buildNotification(User receiver, String content, String link, Long targetId, NotificationType type) {
+    private Notification buildNotification(User receiver, User sender, String content, String link, Long targetId, NotificationType type) {
         Notification notification = new Notification();
         notification.setUser(receiver);
+        notification.setSender(sender);
         notification.setContent(content);
         notification.setLink(link);
         notification.setTargetId(targetId);
@@ -114,10 +116,20 @@ public class NotificationServiceImpl implements NotificationService {
     
         List<Notification> notifications = request.getReceiverIds().stream().map(receiverId -> {
             User receiver = getUser(receiverId);
-            return buildNotification(receiver, content, link, targetId, type);
+            return buildNotification(receiver, sender, content, link, targetId, type);
         }).collect(Collectors.toList());
     
         notificationRepository.saveAll(notifications);
     }
-    
+     
+    @Override
+    public Page<NotificationResponse> getNotificationsByUserId(NotificationFilterRequest request, long userId, Pageable pageable) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                "User not found with id: " + userId));
+        Specification<Notification> spec = Specification
+                .<Notification>where((root, query, cb) -> cb.equal(root.get("user").get("id"), userId))
+                .and(NotificationFilter.filterByRequest(request));
+        return notificationRepository.findAll(spec, pageable).map(NotificationMapper::toNotificationResponse);
+    }
 }
