@@ -174,5 +174,8 @@ public class OrderServiceImpl implements OrderService {
 
             return OrderMapper.toOrderResponse(orderRepository.save(existingOrder));
         }
-
+    @Override
+    public boolean hasUserPaidForDocument(Long userId, Long documentId) {
+        return orderRepository.hasUserPaidForDocument(userId, documentId);
+    }
 }

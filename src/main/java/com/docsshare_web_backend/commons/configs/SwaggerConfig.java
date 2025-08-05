@@ -31,7 +31,7 @@ public class SwaggerConfig {
                         .version("1.0")
                         .description("API documentation for DocsShare Web Backend"))
                 .servers(List.of(
-                        new Server().url("https://4df253b741fa.ngrok-free.app "),
+                        new Server().url("https://925520bd8f2f.ngrok-free.app"),
                         new Server().url("http://localhost:8080")
                 ));
     }
