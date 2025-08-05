@@ -1,12 +1,10 @@
 package com.docsshare_web_backend.notification.services.impl;
 
-import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
 import com.docsshare_web_backend.notification.dto.requests.NotificationFilterRequest;
-import com.docsshare_web_backend.notification.dto.requests.NotificationRequest;
 import com.docsshare_web_backend.notification.dto.requests.NotificationShareRequest;
 import com.docsshare_web_backend.notification.dto.responses.NotificationResponse;
 import com.docsshare_web_backend.notification.enums.NotificationType;
@@ -23,12 +21,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service

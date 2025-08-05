@@ -149,11 +149,11 @@ public class OrderController {
         new ExcelExportService<OrderResponse>().export(response, "order_export", data);
     }
 
-    @GetMapping("/has-paid")
-    public ResponseEntity<Boolean> hasUserPaidDocument(
+    @GetMapping("/has-access-document")
+    public ResponseEntity<Boolean> hasUserAccessToDocument(
             @RequestParam Long userId,
             @RequestParam Long documentId) {
-        boolean result = orderService.hasUserPaidForDocument(userId, documentId);
+        boolean result = orderService.hasAccessToDocument(userId, documentId);
         return ResponseEntity.ok(result);
     }
 
