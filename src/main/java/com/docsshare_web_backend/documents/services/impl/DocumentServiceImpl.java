@@ -1,4 +1,6 @@
 package com.docsshare_web_backend.documents.services.impl;
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +21,7 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
+import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
@@ -413,6 +416,30 @@ public class DocumentServiceImpl implements DocumentService {
                 }
                 document.setViews(document.getViews() + 1);
                 return DocumentMapper.toDocumentResponse(documentRepository.save(document));
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate fromDate, LocalDate toDate, int top) {
+                List<Object[]> results = documentRepository.findTopDocumentsBetweenDates(fromDate, toDate, top);
+
+                return results.stream()
+                        .map((Object[] row) -> TopDocumentReportResponse.builder()
+                                .documentId(((Number) row[0]).longValue())
+                                .title((String) row[1])
+                                .fileType((String) row[2])
+                                .price(row[3] != null ? ((Number) row[3]).doubleValue() : null)
+                                .createdAt(row[4] != null ? ((Timestamp) row[4]).toLocalDateTime() : null)
+                                .authorName((String) row[5])
+                                .category((String) row[6])
+                                .viewCount(((Number) row[7]).longValue())
+                                .saveCount(((Number) row[8]).longValue())
+                                .relatedPostCount(((Number) row[9]).longValue())
+                                .relatedCommentCount(((Number) row[10]).longValue())
+                                .totalInteraction(((Number) row[11]).longValue())
+                                .build()
+                        )
+                        .collect(Collectors.toList());
         }
 
 }
