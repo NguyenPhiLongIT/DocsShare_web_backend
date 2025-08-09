@@ -1,13 +1,12 @@
 package com.docsshare_web_backend.order.services.impl;
 
-import com.docsshare_web_backend.categories.repositories.CategoryRepository;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
 import com.docsshare_web_backend.order.dto.requests.OrderRequest;
 import com.docsshare_web_backend.order.dto.responses.OrderDetailResponse;
 import com.docsshare_web_backend.order.dto.responses.OrderResponse;
+import com.docsshare_web_backend.order.dto.responses.TopUserOrderCompletedResponse;
 import com.docsshare_web_backend.order.enums.OrderStatus;
 import com.docsshare_web_backend.order.filters.OrderFilter;
 import com.docsshare_web_backend.order.models.Order;
@@ -23,17 +22,16 @@ import com.docsshare_web_backend.users.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-
-import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @Slf4j
 @Service
@@ -201,5 +199,18 @@ public class OrderServiceImpl implements OrderService {
                 if (isCoAuthor) return true;
 
                 return orderRepository.hasUserPaidForDocument(userId, documentId);
+        }
+
+        @Override
+        public List<TopUserOrderCompletedResponse> getTopUsersWithCompletedOrders(LocalDate from, LocalDate to, int top) {
+                List<Object[]> results = orderRepository.findTopUsersWithCompletedOrders(from, to, top);
+                List<TopUserOrderCompletedResponse> responseList = new ArrayList<>();
+                for (Object[] row : results) {
+                        Long userId = row[0] != null ? ((Number) row[0]).longValue() : null;
+                        String userName = row[1] != null ? row[1].toString() : null;
+                        int completedOrderCount = row[2] != null ? Math.toIntExact(((Number) row[2]).longValue()) : 0;
+                        responseList.add(new TopUserOrderCompletedResponse(userId, userName, completedOrderCount));
+                }
+                return responseList;
         }
 }

@@ -49,4 +49,21 @@ public interface DocumentRepository
         LIMIT :limit
         """, nativeQuery = true)
     List<Object[]> findTopDocumentsBetweenDates(@Param("from") LocalDate from, @Param("to") LocalDate to, @Param("limit") int top);
+    @Query(value = """
+        SELECT 
+            d.author_id AS userId,
+            u.name AS userName,
+            COUNT(d.id) AS documentCount
+        FROM document d
+        JOIN user u ON d.author_id = u.id
+        WHERE d.created_at BETWEEN :from AND :to
+            AND d.moderation_status = 'APPROVED'
+            AND d.is_public = true
+        GROUP BY d.author_id, u.name
+        ORDER BY documentCount DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findTopUsersAddDocumentBetweenDates(@Param("from") LocalDate from, @Param("to") LocalDate to, @Param("limit") int top);
+
+
 }

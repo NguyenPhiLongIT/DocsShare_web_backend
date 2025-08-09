@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,4 +49,20 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // Eager fetch user + payment + orderDetails + document để tránh lazy loading lỗi
     @EntityGraph(attributePaths = {"user", "payment", "orderDetails", "orderDetails.document"})
     Optional<Order> findWithAllRelationsById(Long id);
+
+    @Query(value = """
+        SELECT 
+            o.user_id AS userId,
+            u.name AS userName,
+            COUNT(o.id) AS completedOrderCount
+        FROM orders o
+        JOIN user u ON o.user_id = u.id
+        WHERE o.created_at BETWEEN :from AND :to
+            AND o.status = 'COMPLETED'
+        GROUP BY o.user_id, u.name
+        ORDER BY completedOrderCount DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findTopUsersWithCompletedOrders(@Param("from") LocalDate from, @Param("to") LocalDate to, @Param("limit") int top);
+
 }
