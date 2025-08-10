@@ -24,4 +24,6 @@ public interface ForumPostService {
     Set<String> getTagsByDocumentId(Long documentId);
     ForumPostResponse incrementView(long forumPostId);
 
+    
+
 }

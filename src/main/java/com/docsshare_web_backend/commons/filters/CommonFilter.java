@@ -117,30 +117,68 @@ public class CommonFilter {
         String searchPattern = "%" + queryValue.trim().toLowerCase() + "%";
         List<Predicate> searchPredicates = new ArrayList<>();
 
-        // Get all String fields from the entity
+        // ✅ Nếu là ForumPost, xử lý đặc biệt: title, content, filePath, tags
+        if (entityClass.getSimpleName().equals("ForumPost")) {
+            Predicate title = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), searchPattern);
+            Predicate content = criteriaBuilder.like(criteriaBuilder.lower(root.get("content")), searchPattern);
+            Predicate filePath = criteriaBuilder.like(criteriaBuilder.lower(root.get("filePath")), searchPattern);
+            Predicate tag = criteriaBuilder.like(criteriaBuilder.lower(root.joinSet("tags", jakarta.persistence.criteria.JoinType.LEFT)), searchPattern);
+
+            return criteriaBuilder.or(title, content, filePath, tag);
+        }
+
+        // ✅ Default: tìm trong các trường String
         for (Field field : entityClass.getDeclaredFields()) {
             if (field.getType() == String.class) {
                 String fieldName = field.getName();
-                // Check for @Column annotation to get database column name
                 Column column = field.getAnnotation(Column.class);
                 if (column != null && !column.name().isEmpty()) {
                     fieldName = column.name();
                 }
                 try {
-                    // Ensure the field is accessible in the query
                     root.get(fieldName);
                     searchPredicates.add(criteriaBuilder.like(
                             criteriaBuilder.lower(root.get(fieldName)),
                             searchPattern
                     ));
                 } catch (IllegalArgumentException e) {
-                    // Skip fields that are not valid in the JPA query (e.g., non-persistent fields)
+                    // Skip
                 }
             }
         }
 
         return criteriaBuilder.or(searchPredicates.toArray(new Predicate[0]));
     }
+
+//    private static <T> Predicate handleQueryString(String queryValue, Root<T> root,
+//                                                   CriteriaBuilder criteriaBuilder, Class<T> entityClass) {
+//        String searchPattern = "%" + queryValue.trim().toLowerCase() + "%";
+//        List<Predicate> searchPredicates = new ArrayList<>();
+//
+//        // Get all String fields from the entity
+//        for (Field field : entityClass.getDeclaredFields()) {
+//            if (field.getType() == String.class) {
+//                String fieldName = field.getName();
+//                // Check for @Column annotation to get database column name
+//                Column column = field.getAnnotation(Column.class);
+//                if (column != null && !column.name().isEmpty()) {
+//                    fieldName = column.name();
+//                }
+//                try {
+//                    // Ensure the field is accessible in the query
+//                    root.get(fieldName);
+//                    searchPredicates.add(criteriaBuilder.like(
+//                            criteriaBuilder.lower(root.get(fieldName)),
+//                            searchPattern
+//                    ));
+//                } catch (IllegalArgumentException e) {
+//                    // Skip fields that are not valid in the JPA query (e.g., non-persistent fields)
+//                }
+//            }
+//        }
+//
+//        return criteriaBuilder.or(searchPredicates.toArray(new Predicate[0]));
+//    }
 
     /**
      * Handles date range fields (e.g., createdAt_from, dueDate_to).

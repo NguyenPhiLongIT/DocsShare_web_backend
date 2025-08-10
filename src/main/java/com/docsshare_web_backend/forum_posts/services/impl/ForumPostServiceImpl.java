@@ -57,6 +57,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .content(forumPost.getContent())
                     .filePath(forumPost.getFilePath())
                     .isPublic(forumPost.getIsPublic() != null ? forumPost.getIsPublic().toString() : null)
+                    .categoryId(forumPost.getDocument() != null && forumPost.getDocument().getCategory() != null
+                            ? forumPost.getDocument().getCategory().getId()
+                            : (forumPost.getCategory() != null ? forumPost.getCategory().getId() : null))
                     .category(
                             forumPost.getDocument() != null && forumPost.getDocument().getCategory() != null
                                     ? forumPost.getDocument().getCategory().getName()
