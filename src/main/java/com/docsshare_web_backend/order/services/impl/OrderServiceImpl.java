@@ -6,6 +6,7 @@ import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
 import com.docsshare_web_backend.order.dto.requests.OrderRequest;
+import com.docsshare_web_backend.order.dto.requests.OrderRequest.OrderItemRequest;
 import com.docsshare_web_backend.order.dto.responses.OrderDetailResponse;
 import com.docsshare_web_backend.order.dto.responses.OrderResponse;
 import com.docsshare_web_backend.order.enums.OrderStatus;
@@ -32,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
@@ -129,7 +132,20 @@ public class OrderServiceImpl implements OrderService {
                                                         "Payment not found with id: " + request.getPaymentId()));
                 }
 
-                // 3. Tạo đơn hàng (Order)
+                // 3. Lọc trùng document ngay trong request
+                Set<Long> uniqueDocumentIds = request.getItems().stream()
+                        .map(OrderItemRequest::getDocumentId)
+                        .collect(Collectors.toSet());
+
+                // 4. Kiểm tra document đã có trong order trước đó của user chưa
+                List<Long> existingDocIds = orderDetailRepository.findDocumentIdsByUserId(user.getId());
+                uniqueDocumentIds.removeAll(existingDocIds); // bỏ document đã mua
+
+                // if (uniqueDocumentIds.isEmpty()) {
+                //         throw new IllegalArgumentException("Selected documents have already been order.");
+                // }
+
+                // 5. Tạo đơn hàng (Order)
                 Order order = Order.builder()
                                 .status(OrderStatus.PENDING)
                                 .commissionRate(request.getCommissionRate())
@@ -138,7 +154,7 @@ public class OrderServiceImpl implements OrderService {
                                 .build();
                 Order savedOrder = orderRepository.save(order);
 
-                // 4. Tạo danh sách chi tiết đơn hàng (OrderDetail)
+                // 6. Tạo danh sách chi tiết đơn hàng (OrderDetail)
                 List<OrderDetail> orderDetails = request.getItems().stream().map(item -> {
                         Document document = documentRepository.findById(item.getDocumentId())
                                         .orElseThrow(() -> new EntityNotFoundException(
@@ -153,10 +169,10 @@ public class OrderServiceImpl implements OrderService {
 
                 orderDetailRepository.saveAll(orderDetails);
 
-                // 5. Gán lại orderDetails cho đơn hàng để trả về DTO đúng
+                // 7. Gán lại orderDetails cho đơn hàng để trả về DTO đúng
                 savedOrder.setOrderDetails(orderDetails);
 
-                // 6. Trả về OrderResponse DTO
+                // 8. Trả về OrderResponse DTO
                 return OrderMapper.toOrderResponse(savedOrder);
         }
 

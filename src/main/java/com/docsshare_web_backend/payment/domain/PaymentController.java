@@ -61,7 +61,7 @@ public class PaymentController {
     public ResponseEntity<MomoPaymentResponse> createMomoPayment(
             @RequestParam Long orderId,
             @RequestParam Integer amount) throws Exception {
-        log.debug("[MoMo] Create Payment for OrderId: {}, Amount: {}", orderId, amount);
+        log.info("[MoMo] Create Payment for OrderId: {}, Amount: {}", orderId, amount);
         MomoPaymentResponse response = momoPaymentService.createPayment(orderId, amount);
         return ResponseEntity.ok(response);
     }
@@ -69,7 +69,7 @@ public class PaymentController {
     // IPN callback từ MoMo
     @PostMapping("/momo/ipn")
     public ResponseEntity<String> handleMomoIpn(@RequestBody MomoIpnRequest ipnRequest) {
-        log.debug("[MoMo] IPN Callback: {}", ipnRequest);
+        log.info("[MoMo] IPN Callback: {}", ipnRequest);
         if (ipnRequest.getResultCode() == 0) {
             momoPaymentService.updatePaymentStatus(ipnRequest.getOrderId(), PaymentStatus.SUCCESS);
             return ResponseEntity.ok("IPN received - SUCCESS");

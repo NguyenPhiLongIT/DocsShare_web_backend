@@ -13,4 +13,5 @@ public interface SavedDocumentsService {
     Page<SavedDocumentsResponse> getSavedDocumentsByUserId(SavedDocumentsFilterRequest request, long userId, Pageable pageable);
     SavedDocumentsResponse saveDocument(SavedDocumentsRequest request);
     void unsaveDocument(SavedDocumentsRequest request);
+    boolean isDocumentSaved(SavedDocumentsRequest request);
 }

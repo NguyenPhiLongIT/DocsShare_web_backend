@@ -66,4 +66,12 @@ public class SavedDocumentsController {
         savedDocumentsService.unsaveDocument(request);
         return ResponseEntity.ok(Map.of("message", "Document unsaved successfully"));
     }
+
+    @PostMapping("/saved/check")
+    public ResponseEntity<Map<String, Boolean>> checkDocumentSaved(
+            @RequestBody SavedDocumentsRequest request) {
+        boolean saved = savedDocumentsService.isDocumentSaved(request);
+        return ResponseEntity.ok(Collections.singletonMap("saved", saved));
+    }
+
 }

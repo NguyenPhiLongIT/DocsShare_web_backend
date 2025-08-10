@@ -23,9 +23,11 @@ public interface DocumentRepository
 
     @Query(value = """
         SELECT 
-            d.id AS documentId,
+            d.id AS id,
             d.title,
+            d.description,
             d.file_type AS fileType,
+            d.slug,
             d.price,
             d.created_at AS createdAt,
             u.name AS authorName,
@@ -38,13 +40,13 @@ public interface DocumentRepository
         FROM document d
         JOIN user u ON d.author_id = u.id
         JOIN category c ON d.category_id = c.id
-        LEFT JOIN saved_documents sd ON d.id = sd.document_id AND sd.created_at BETWEEN :from AND :to
+        LEFT JOIN saved_documents sd ON d.id = sd.document_id AND sd.saved_at BETWEEN :from AND :to
         LEFT JOIN forum_post fp ON d.id = fp.document_id AND fp.created_at BETWEEN :from AND :to
         LEFT JOIN comment cm ON fp.id = cm.forum_post_id AND cm.created_at BETWEEN :from AND :to
         WHERE d.created_at BETWEEN :from AND :to
             AND d.moderation_status = 'APPROVED'
             AND d.is_public = true
-        GROUP BY d.id, d.title, d.file_type, d.price, d.created_at, u.name, c.name, d.views
+        GROUP BY d.id, d.title, d.description, d.file_type, d.slug, d.price, d.created_at, u.name, c.name, d.views
         ORDER BY totalInteraction DESC
         LIMIT :limit
         """, nativeQuery = true)

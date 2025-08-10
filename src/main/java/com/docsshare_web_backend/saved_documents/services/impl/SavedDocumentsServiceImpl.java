@@ -99,4 +99,11 @@ public class SavedDocumentsServiceImpl implements SavedDocumentsService{
             throw new EntityNotFoundException("Saved document not found for userId=" + request.getUserId() + " and documentId=" + request.getDocumentId());
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isDocumentSaved(SavedDocumentsRequest request) {
+        return savedDocumentsRepository.findByUserIdAndDocumentId(request.getUserId(), request.getDocumentId()).isPresent();
+    }
+
 }

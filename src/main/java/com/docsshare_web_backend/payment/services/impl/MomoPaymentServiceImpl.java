@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.docsshare_web_backend.order.enums.OrderStatus;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -51,7 +53,7 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
     }
-
+    
     @Override
     @Transactional
     public MomoPaymentResponse createPayment(Long orderId, Integer amount) throws Exception {
@@ -110,7 +112,9 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
         if (response == null || response.getResultCode() != 0) {
             throw new RuntimeException("Tạo giao dịch MoMo thất bại");
         }
-
+        
+        log.info("[MoMo] Request: {}", momoRequest);
+        log.info("[MoMo] Response: {}", response);
         return response;
     }
 
