@@ -3,9 +3,11 @@ package com.docsshare_web_backend.forum_posts.domain;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
+import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
+import com.docsshare_web_backend.forum_posts.dto.responses.TopForumPostReportResponse;
 import com.docsshare_web_backend.forum_posts.services.ForumPostService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.Getter;
@@ -19,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -139,5 +143,16 @@ public class ForumPostController {
         log.debug("[ForumPostController] Increment view count for Forum post with id {}", forumPostId);
         return ResponseEntity.ok(forumPostService.incrementView(forumPostId));
     }
+
+    @GetMapping("/top-forum-posts")
+    public ResponseEntity<List<TopForumPostReportResponse>> getTopInteractedForumPosts(
+            @RequestParam("fromDate") LocalDate fromDate,
+            @RequestParam("toDate") LocalDate toDate,
+            @RequestParam(defaultValue = "10") int top) {
+
+        List<TopForumPostReportResponse> result = forumPostService.getTopForumPostsBetween(fromDate, toDate, top);
+        return ResponseEntity.ok(result);
+    }
+
 
 }
