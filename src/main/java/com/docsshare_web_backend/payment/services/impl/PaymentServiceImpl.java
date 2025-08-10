@@ -5,25 +5,23 @@ import com.docsshare_web_backend.order.repositories.OrderRepository;
 import com.docsshare_web_backend.payment.dto.requests.PaymentFilterRequest;
 import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
+import com.docsshare_web_backend.payment.dto.responses.TopPaymentSuccessResponse;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
-import com.docsshare_web_backend.payment.enums.PaymentMethod;
 import com.docsshare_web_backend.payment.filters.PaymentFilter;
 import com.docsshare_web_backend.payment.models.Payment;
 import com.docsshare_web_backend.payment.repositories.PaymentRepository;
 import com.docsshare_web_backend.payment.services.PaymentService;
-import com.docsshare_web_backend.users.models.User;
-import com.docsshare_web_backend.users.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -94,6 +92,19 @@ public class PaymentServiceImpl implements PaymentService {
         // 4. Trả về DTO
         return PaymentMapper.toPaymentResponse(saved);
     }
-
+    @Override
+    public List<TopPaymentSuccessResponse> getTopSuccessPayments(int top) {
+        List<Object[]> results = paymentRepository.findTopSuccessPayments(top);
+        List<TopPaymentSuccessResponse> responseList = new ArrayList<>();
+        for (Object[] row : results) {
+            Long paymentId = row[0] != null ? ((Number) row[0]).longValue() : null;
+            Integer amount = row[1] != null ? ((Number) row[1]).intValue() : null;
+            String transactionId = row[2] != null ? row[2].toString() : null;
+            String paymentMethod = row[3] != null ? row[3].toString() : null;
+            String order_id = row[4] != null ? row[4].toString() : null;
+            responseList.add(new TopPaymentSuccessResponse(paymentId, amount, transactionId, paymentMethod, order_id));
+        }
+        return responseList;
+    }
 
 }
