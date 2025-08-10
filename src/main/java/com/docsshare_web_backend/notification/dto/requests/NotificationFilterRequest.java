@@ -14,11 +14,11 @@ public class NotificationFilterRequest {
     private String q; // Tìm kiếm theo tên
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_from;
+    private LocalDate createdAt_from;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_to;
+    private LocalDate createdAt_to;
 
     private Boolean isRead;
-    private NotificationType status;
+    private NotificationType type;
 }

@@ -13,6 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentUpdateStatusRequest {
+    private Long senderId;
     private DocumentModerationStatus status;
     private String rejectedReason;
 }

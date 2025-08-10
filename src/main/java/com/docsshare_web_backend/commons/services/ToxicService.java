@@ -78,7 +78,7 @@ public class ToxicService {
 
     public void validateTextSafety(String text, String label) {
         if (containsVietnameseOffensiveWords(text)) {
-            throw new IllegalArgumentException(label + " contains inappropriate language and cannot be posted.");
+            throw new IllegalArgumentException(label + " chứa ngôn ngữ không phù hợp và không thể đăng.");
         }
 
         ToxicResult result = predict(text);

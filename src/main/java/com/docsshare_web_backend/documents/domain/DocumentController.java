@@ -7,25 +7,28 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
-import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.commons.services.SummaryService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -54,6 +57,8 @@ public class DocumentController {
     private SummaryService summaryService;
     @Autowired
     private DocumentCoAuthorService documentCoAuthorService;
+    @Autowired 
+    private ExcelExportService excelExportService;
 
     @GetMapping
     public ResponseEntity<Page<DocumentResponse>> getAllDocuments(
@@ -196,6 +201,27 @@ public class DocumentController {
             @RequestParam String email) {
         documentCoAuthorService.removeCoAuthor(documentId, email);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export")
+    public void exportExcel(@ModelAttribute DocumentFilterRequest filterRequest,
+        HttpServletResponse response
+    ) {
+        // Dùng Pageable.unpaged() để lấy toàn bộ
+        Page<DocumentResponse> page = documentService.getAllDocuments(filterRequest, Pageable.unpaged());
+        List<DocumentResponse> data = page.getContent();
+
+        new ExcelExportService<DocumentResponse>().export(response, "document_export", data);
+    }
+
+    @GetMapping("/top-documents")
+    public ResponseEntity<List<TopDocumentReportResponse>> getTopInteractedDocuments(
+            @RequestParam("fromDate") LocalDate fromDate,
+            @RequestParam("toDate") LocalDate toDate,
+            @RequestParam(defaultValue = "10") int top) {
+        
+        List<TopDocumentReportResponse> result = documentService.getTopDocumentsBetween(fromDate, toDate, top);
+        return ResponseEntity.ok(result);
     }
 }
 

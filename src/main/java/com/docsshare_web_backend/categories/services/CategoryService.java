@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.categories.services;
 
+import com.docsshare_web_backend.categories.dto.requests.CategoryFilterRequest;
 import com.docsshare_web_backend.categories.dto.requests.CategoryRequest;
 import com.docsshare_web_backend.categories.dto.responses.CategoryResponse;
 
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface CategoryService {
-    List<CategoryResponse> getAllRootCategories();
+    List<CategoryResponse> getAllRootCategories(CategoryFilterRequest request);
     List<CategoryResponse> getSubCategories(long parentId);
     CategoryResponse getCategoryById(long categoryId);
     CategoryResponse createCategory(CategoryRequest request);

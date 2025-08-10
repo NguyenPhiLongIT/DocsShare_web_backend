@@ -1,10 +1,12 @@
 package com.docsshare_web_backend.order.domain;
 
+import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
 import com.docsshare_web_backend.order.dto.requests.OrderRequest;
 import com.docsshare_web_backend.order.dto.responses.OrderResponse;
 import com.docsshare_web_backend.order.enums.OrderStatus;
 import com.docsshare_web_backend.order.services.OrderService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -133,5 +137,25 @@ public class OrderController {
         Page<OrderResponse> orders = orderService.getOrderByAuthorId(userId, pageable);
         return ResponseEntity.ok(orders);
     }
+
+    @GetMapping("/export")
+    public void exportOrdersExcel(
+            @ModelAttribute OrderFilterRequest filterRequest,
+            HttpServletResponse response
+    ) {
+        Page<OrderResponse> page = orderService.getAllOrder(filterRequest, Pageable.unpaged());
+        List<OrderResponse> data = page.getContent();
+
+        new ExcelExportService<OrderResponse>().export(response, "order_export", data);
+    }
+
+    @GetMapping("/has-access-document")
+    public ResponseEntity<Boolean> hasUserAccessToDocument(
+            @RequestParam Long userId,
+            @RequestParam Long documentId) {
+        boolean result = orderService.hasAccessToDocument(userId, documentId);
+        return ResponseEntity.ok(result);
+    }
+
 }
 

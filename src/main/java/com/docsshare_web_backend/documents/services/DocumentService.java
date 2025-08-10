@@ -5,6 +5,11 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
+import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,4 +28,5 @@ public interface DocumentService {
     DocumentResponse updateDocument(long documentId, DocumentUpdateRequest request);
     DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request);
     DocumentResponse incrementView(long documentId);
+    List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate from, LocalDate to, int top);
 }

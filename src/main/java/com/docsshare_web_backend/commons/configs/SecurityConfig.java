@@ -78,7 +78,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://4df253b741fa.ngrok-free.app/swagger-ui/index.html?gidzl=8qZG9Ep1KNqaLjScxjnKUYHGrIxqZ5HqR0o5AAQ202LkNuKgfT85S3vIWNZptmTmRrE2967-kRTixyXGVW#/",
+        configuration.setAllowedOrigins(Arrays.asList("https://925520bd8f2f.ngrok-free.app/swagger-ui/index.html?gidzl=8qZG9Ep1KNqaLjScxjnKUYHGrIxqZ5HqR0o5AAQ202LkNuKgfT85S3vIWNZptmTmRrE2967-kRTixyXGVW#/",
                 "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));

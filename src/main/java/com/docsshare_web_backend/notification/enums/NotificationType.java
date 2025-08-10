@@ -1,5 +1,5 @@
 package com.docsshare_web_backend.notification.enums;
 
 public enum NotificationType {
-    COMMENT, APPROVED, REJECTED;
+    DOCUMENT_SHARE, POST_SHARE, COMMENT, FOLLOW, APPROVED, REJECTED;
 }

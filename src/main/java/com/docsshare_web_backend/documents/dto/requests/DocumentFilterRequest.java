@@ -15,9 +15,9 @@ import lombok.Setter;
 public class DocumentFilterRequest {
     private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_from;
+    private LocalDate createdAt_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_to;
+    private LocalDate createdAt_to;
     private Boolean isPublic;
     private DocumentModerationStatus moderationStatus;
     private DocumentFileType fileType;

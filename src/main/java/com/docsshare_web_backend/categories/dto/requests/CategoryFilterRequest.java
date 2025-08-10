@@ -1,8 +1,4 @@
-package com.docsshare_web_backend.account.dto.requests;
-
-import com.docsshare_web_backend.account.enums.AccountStatus;
-import com.docsshare_web_backend.users.enums.UserStatus;
-import com.docsshare_web_backend.users.enums.UserType;
+package com.docsshare_web_backend.categories.dto.requests;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -11,12 +7,10 @@ import java.time.LocalDate;
 
 @Setter
 @Getter
-public class AccountFilterRequest {
+public class CategoryFilterRequest {
     private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdAt_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate createdAt_to;
-    private UserType userType;
-    private UserStatus status;
 }

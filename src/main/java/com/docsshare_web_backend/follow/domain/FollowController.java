@@ -85,7 +85,7 @@ public class FollowController {
                 .body(followService.createFollow(followRequest));
     }
 
-    @DeleteMapping("/api/v1/follow/{followingId}/unfollow")
+    @DeleteMapping("/{followingId}/unfollow")
     public ResponseEntity<Map<String, String>> unfollow(
             @PathVariable Long followingId,
             @RequestParam Long followerId) {

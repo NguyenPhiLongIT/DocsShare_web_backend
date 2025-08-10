@@ -1,4 +1,7 @@
 package com.docsshare_web_backend.documents.services.impl;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +21,7 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
+import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
@@ -27,8 +31,12 @@ import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorRespons
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.notification.enums.NotificationType;
+import com.docsshare_web_backend.notification.models.Notification;
+import com.docsshare_web_backend.notification.repositories.NotificationRepository;
 import com.docsshare_web_backend.saved_documents.dto.responses.SavedDocumentsCountProjection;
 import com.docsshare_web_backend.saved_documents.repositories.SavedDocumentsRepository;
+import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
 import com.docsshare_web_backend.commons.utils.SlugUtils;
@@ -56,6 +64,9 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Autowired
         private GoogleDriveService googleDriveService;
+
+        @Autowired
+        private NotificationRepository notificationRepository;
 
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
@@ -354,15 +365,40 @@ public class DocumentServiceImpl implements DocumentService {
         public DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request) {
                 Document existingDocument = documentRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                
+                User sender = userRepository.findById(request.getSenderId())
+                        .orElseThrow(() -> new EntityNotFoundException("Sender not found"));
 
                 DocumentModerationStatus status = request.getStatus();
                 existingDocument.setModerationStatus(status);
 
                 if (status == DocumentModerationStatus.APPROVED) {
                         existingDocument.setRejectedReason(null); // clear nếu từng bị từ chối
+                        Notification notification = Notification.builder()
+                                .content("Document \"" + existingDocument.getTitle() + "\" has been approved.")
+                                .createdAt(LocalDateTime.now())
+                                .isRead(false)
+                                .link("/documents/" + existingDocument.getSlug())
+                                .targetId(existingDocument.getId())
+                                .type(NotificationType.APPROVED)
+                                .user(existingDocument.getAuthor())
+                                .sender(sender)
+                                .build();
+                        notificationRepository.save(notification);
                 } else {
                         if (status == DocumentModerationStatus.REJECTED) {
                                 existingDocument.setRejectedReason(request.getRejectedReason());
+                                Notification notification = Notification.builder()
+                                        .content("Document \"" + existingDocument.getTitle() + "\" has been rejected")
+                                        .createdAt(LocalDateTime.now())
+                                        .isRead(false)
+                                        .link("/documents/" + existingDocument.getSlug())
+                                        .targetId(existingDocument.getId())
+                                        .type(NotificationType.REJECTED)
+                                        .user(existingDocument.getAuthor())
+                                        .sender(sender)
+                                        .build();
+                                notificationRepository.save(notification);
                         } else {
                                 existingDocument.setRejectedReason(null);
                         }
@@ -380,6 +416,30 @@ public class DocumentServiceImpl implements DocumentService {
                 }
                 document.setViews(document.getViews() + 1);
                 return DocumentMapper.toDocumentResponse(documentRepository.save(document));
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate fromDate, LocalDate toDate, int top) {
+                List<Object[]> results = documentRepository.findTopDocumentsBetweenDates(fromDate, toDate, top);
+
+                return results.stream()
+                        .map((Object[] row) -> TopDocumentReportResponse.builder()
+                                .documentId(((Number) row[0]).longValue())
+                                .title((String) row[1])
+                                .fileType((String) row[2])
+                                .price(row[3] != null ? ((Number) row[3]).doubleValue() : null)
+                                .createdAt(row[4] != null ? ((Timestamp) row[4]).toLocalDateTime() : null)
+                                .authorName((String) row[5])
+                                .category((String) row[6])
+                                .viewCount(((Number) row[7]).longValue())
+                                .saveCount(((Number) row[8]).longValue())
+                                .relatedPostCount(((Number) row[9]).longValue())
+                                .relatedCommentCount(((Number) row[10]).longValue())
+                                .totalInteraction(((Number) row[11]).longValue())
+                                .build()
+                        )
+                        .collect(Collectors.toList());
         }
 
 }

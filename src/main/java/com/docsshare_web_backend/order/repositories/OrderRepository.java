@@ -38,6 +38,12 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 """)
     Page<Order> findOrdersByAuthorOrCoauthor(@Param("authorId") Long authorId, Pageable pageable);
 
+    @Query("SELECT COUNT(od) > 0 FROM Order o " +
+            "JOIN o.orderDetails od " +
+            "WHERE o.user.id = :userId " +
+            "AND od.document.id = :documentId " +
+            "AND o.status = 'COMPLETED'")
+    boolean hasUserPaidForDocument(@Param("userId") Long userId, @Param("documentId") Long documentId);
     // Eager fetch user + payment + orderDetails + document để tránh lazy loading lỗi
     @EntityGraph(attributePaths = {"user", "payment", "orderDetails", "orderDetails.document"})
     Optional<Order> findWithAllRelationsById(Long id);

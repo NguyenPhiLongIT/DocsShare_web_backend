@@ -21,7 +21,15 @@ public class NotificationResponse {
 
     private boolean isRead;
 
+    private String link;
+
+    private Long targetId;
+
     private LocalDateTime createdAt;
 
+    private String senderName;
+
+    private Long senderId;
+    
     private Long userId;
 }

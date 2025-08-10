@@ -26,8 +26,14 @@ public class Notification {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(length = 50, nullable = false)
     private NotificationType type;
+
+    @Column
+    private String link;
+
+    @Column
+    private Long targetId;
 
     @Column(nullable = false)
     private boolean isRead;
@@ -38,4 +44,8 @@ public class Notification {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User sender;
 }

@@ -16,9 +16,6 @@ public interface OrderService {
     Page<OrderResponse> getOrderByUserId(Long userId, Pageable pageable);
     Page<OrderResponse> getOrderByAuthorId(Long userId, Pageable pageable);
     OrderResponse createOrder(OrderRequest request);
-//    OrderResponse getOrderBySlug(String slug);
-//    Page<OrderResponse> getOrderByUserId(OrderFilterRequest request, long userId, Pageable pageable);
-
-//    OrderResponse updateOrder(long documentId, OrderRequest request);
+    boolean hasAccessToDocument(Long userId, Long documentId);
     OrderResponse updateOrderStatus(long id, OrderStatus status);
 }
