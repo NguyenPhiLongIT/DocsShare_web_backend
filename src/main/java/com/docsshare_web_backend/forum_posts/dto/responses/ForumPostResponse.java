@@ -22,6 +22,7 @@ public class ForumPostResponse {
     private String isPublic;
     private UserResponse user;
     private String linkDocument;
+    private Long categoryId;
     private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
