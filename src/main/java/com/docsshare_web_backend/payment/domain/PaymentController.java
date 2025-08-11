@@ -7,6 +7,8 @@ import com.docsshare_web_backend.payment.dto.responses.MomoPaymentResponse;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
 import com.docsshare_web_backend.payment.dto.responses.TopPaymentSuccessResponse;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
+import com.docsshare_web_backend.payment.models.Payment;
+import com.docsshare_web_backend.payment.repositories.PaymentRepository;
 import com.docsshare_web_backend.payment.services.MomoPaymentService;
 import com.docsshare_web_backend.payment.services.PaymentService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,9 @@ public class PaymentController {
 
     @Autowired
     private MomoPaymentService momoPaymentService;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @GetMapping
     public ResponseEntity<Page<PaymentResponse>> getAllPayments(
@@ -72,7 +77,7 @@ public class PaymentController {
     // IPN callback từ MoMo
     @PostMapping("/momo/ipn")
     public ResponseEntity<String> handleMomoIpn(@RequestBody MomoIpnRequest ipnRequest) {
-        log.debug("[MoMo] IPN Callback: {}", ipnRequest);
+        log.info("[MoMo] IPN Callback: {}", ipnRequest);
         if (ipnRequest.getResultCode() == 0) {
             momoPaymentService.updatePaymentStatus(ipnRequest.getOrderId(), PaymentStatus.SUCCESS);
             return ResponseEntity.ok("IPN received - SUCCESS");
@@ -84,13 +89,27 @@ public class PaymentController {
 
     // Redirect user sau khi thanh toán (chỉ cho Web)
     @GetMapping("/momo/return")
-    public ResponseEntity<String> paymentReturn(@RequestParam String orderId, @RequestParam int resultCode) {
-        log.debug("[MoMo] Return URL Callback - OrderId: {}, ResultCode: {}", orderId, resultCode);
-        if (resultCode == 0) {
-            return ResponseEntity.ok("Thanh toán thành công cho OrderId: " + orderId);
+    public ResponseEntity<Void> paymentReturn(@RequestParam String orderId, @RequestParam int resultCode) {
+        log.debug("[MoMo] Return URL Callback - OrderId(transactionId): {}, ResultCode: {}", orderId, resultCode);
+
+        Payment payment = paymentRepository.findByTransactionId(orderId)
+                .orElse(null);
+
+        String redirectUrl;
+        if (payment != null && payment.getOrder() != null) {
+            Long realOrderId = payment.getOrder().getId(); // ID đơn hàng thực
+            if (resultCode == 0) {
+                redirectUrl = "http://localhost:5173/order/" + realOrderId;
+            } else {
+                redirectUrl = "http://localhost:5173/payments/payment-failed";
+            }
         } else {
-            return ResponseEntity.ok("Thanh toán thất bại cho OrderId: " + orderId);
+            redirectUrl = "http://localhost:5173/payments/payment-failed";
         }
+
+        return ResponseEntity.status(302)
+                .location(java.net.URI.create(redirectUrl))
+                .build();
     }
     @GetMapping("/top-success-payments")
     public ResponseEntity<List<TopPaymentSuccessResponse>> getTopSuccessPayments(
