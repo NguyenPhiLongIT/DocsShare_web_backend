@@ -8,6 +8,7 @@ import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
+import com.docsshare_web_backend.forum_posts.dto.responses.TopForumPostReportResponse;
 import com.docsshare_web_backend.forum_posts.filters.ForumPostFilter;
 import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
@@ -21,13 +22,18 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -57,6 +63,9 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .content(forumPost.getContent())
                     .filePath(forumPost.getFilePath())
                     .isPublic(forumPost.getIsPublic() != null ? forumPost.getIsPublic().toString() : null)
+                    .categoryId(forumPost.getDocument() != null && forumPost.getDocument().getCategory() != null
+                            ? forumPost.getDocument().getCategory().getId()
+                            : (forumPost.getCategory() != null ? forumPost.getCategory().getId() : null))
                     .category(
                             forumPost.getDocument() != null && forumPost.getDocument().getCategory() != null
                                     ? forumPost.getDocument().getCategory().getName()
@@ -285,6 +294,56 @@ public Page<ForumPostResponse> getForumPostByCategoryId(ForumPostFilterRequest r
         forumPost.setViews(forumPost.getViews() + 1);
         return ForumPostMapper.toForumPostResponse(forumPostRepository.save(forumPost));
     }
+
+    @Override
+    public List<TopForumPostReportResponse> getTopForumPostsBetween(LocalDate fromDate, LocalDate toDate, int top) {
+        LocalDateTime startDateTime = fromDate.atStartOfDay();
+        LocalDateTime endDateTime = toDate.atTime(LocalTime.MAX);
+
+        List<Object[]> results = forumPostRepository.findTopForumPostsBetweenDates(startDateTime, endDateTime, PageRequest.of(0, top));
+//        return results.stream()
+//                .map(row -> TopForumPostReportResponse.builder()
+//                        .postId(((Number) row[0]).longValue())
+//                        .title((String) row[1])
+//                        .viewCount(row[2] != null ? ((Number) row[2]).longValue() : 0L)
+//                        .savedCount(row[3] != null ? ((Number) row[3]).longValue() : 0L)
+//                        .commentsCount(row[4] != null ? ((Number) row[4]).longValue() : 0L)
+//                        .totalInteraction(row[5] != null ? ((Number) row[5]).longValue() : 0L)
+//                        .authorName((String) row[6])
+//                        .createdAt(row[7] != null ? (LocalDateTime) row[7] : null)
+//                        .category((String) row[8])
+//                        .linkDocument(row[9] != null ? ((Number) row[9]).longValue() : null)
+//                        .build())
+//
+//                .collect(Collectors.toList());
+        return results.stream()
+                .map(row -> {
+                    String categoryName = null;
+                    if (row[8] != null) { // c2 (category)
+                        categoryName = ((Category)row[8]).getName();
+                    } else if (row[9] != null) { // d (document)
+                        Document doc = (Document) row[9];
+                        if (doc.getCategory() != null) {
+                            categoryName = doc.getCategory().getName();
+                        }
+                    }
+                    return TopForumPostReportResponse.builder()
+                            .postId(((Number) row[0]).longValue())
+                            .title((String) row[1])
+                            .viewCount(row[2] != null ? ((Number) row[2]).longValue() : 0L)
+                            .savedCount(row[3] != null ? ((Number) row[3]).longValue() : 0L)
+                            .commentsCount(row[4] != null ? ((Number) row[4]).longValue() : 0L)
+                            .totalInteraction(row[5] != null ? ((Number) row[5]).longValue() : 0L)
+                            .authorName((String) row[6])
+                            .createdAt(row[7] != null ? (LocalDateTime) row[7] : null)
+                            .category(categoryName)
+                            .linkDocument(row[9] != null ? ((Document)row[9]).getSlug() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+    }
+
 
     @Override
     public Set<String> getTagsByCategoryId(Long categoryId) {

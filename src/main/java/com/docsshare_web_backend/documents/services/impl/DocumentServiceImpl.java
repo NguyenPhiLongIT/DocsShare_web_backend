@@ -2,11 +2,13 @@ package com.docsshare_web_backend.documents.services.impl;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.docsshare_web_backend.account.dto.responses.TopUserAddDocumentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -442,6 +444,19 @@ public class DocumentServiceImpl implements DocumentService {
                                 .build()
                         )
                         .collect(Collectors.toList());
+        }
+
+        @Override
+        public List<TopUserAddDocumentResponse> getTopUsersAddDocumentBetween(LocalDate from, LocalDate to, int top) {
+                List<Object[]> results = documentRepository.findTopUsersAddDocumentBetweenDates(from, to, top);
+                List<TopUserAddDocumentResponse> responseList = new ArrayList<>();
+                for (Object[] row : results) {
+                        Long userId = row[0] != null ? ((Number) row[0]).longValue() : null;
+                        String userName = row[1] != null ? row[1].toString() : null;
+                        Long documentCount = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+                        responseList.add(new TopUserAddDocumentResponse(userId, userName, Math.toIntExact(documentCount)));
+                }
+                return responseList;
         }
 
 }

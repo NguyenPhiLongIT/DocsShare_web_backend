@@ -5,6 +5,7 @@ import com.docsshare_web_backend.payment.dto.requests.PaymentFilterRequest;
 import com.docsshare_web_backend.payment.dto.requests.PaymentRequest;
 import com.docsshare_web_backend.payment.dto.responses.MomoPaymentResponse;
 import com.docsshare_web_backend.payment.dto.responses.PaymentResponse;
+import com.docsshare_web_backend.payment.dto.responses.TopPaymentSuccessResponse;
 import com.docsshare_web_backend.payment.enums.PaymentStatus;
 import com.docsshare_web_backend.payment.services.MomoPaymentService;
 import com.docsshare_web_backend.payment.services.PaymentService;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -89,5 +92,10 @@ public class PaymentController {
             return ResponseEntity.ok("Thanh toán thất bại cho OrderId: " + orderId);
         }
     }
-
+    @GetMapping("/top-success-payments")
+    public ResponseEntity<List<TopPaymentSuccessResponse>> getTopSuccessPayments(
+            @RequestParam(defaultValue = "10") int top) {
+        List<TopPaymentSuccessResponse> result = paymentService.getTopSuccessPayments(top);
+        return ResponseEntity.ok(result);
+    }
 }

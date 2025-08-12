@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.documents.services;
 
+import com.docsshare_web_backend.account.dto.responses.TopUserAddDocumentResponse;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
@@ -29,4 +30,6 @@ public interface DocumentService {
     DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request);
     DocumentResponse incrementView(long documentId);
     List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate from, LocalDate to, int top);
+    List<TopUserAddDocumentResponse> getTopUsersAddDocumentBetween(LocalDate from, LocalDate to, int top);
+
 }

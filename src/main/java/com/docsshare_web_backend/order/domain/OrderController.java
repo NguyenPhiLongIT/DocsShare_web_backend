@@ -4,6 +4,7 @@ import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
 import com.docsshare_web_backend.order.dto.requests.OrderRequest;
 import com.docsshare_web_backend.order.dto.responses.OrderResponse;
+import com.docsshare_web_backend.order.dto.responses.TopUserOrderCompletedResponse;
 import com.docsshare_web_backend.order.enums.OrderStatus;
 import com.docsshare_web_backend.order.services.OrderService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -156,6 +158,14 @@ public class OrderController {
         boolean result = orderService.hasAccessToDocument(userId, documentId);
         return ResponseEntity.ok(result);
     }
+    @GetMapping("/top-users-completed-orders")
+    public ResponseEntity<List<TopUserOrderCompletedResponse>> getTopUsersWithCompletedOrders(
+            @RequestParam("fromDate") LocalDate fromDate,
+            @RequestParam("toDate") LocalDate toDate,
+            @RequestParam(defaultValue = "10") int top) {
 
+        List<TopUserOrderCompletedResponse> result = orderService.getTopUsersWithCompletedOrders(fromDate, toDate, top);
+        return ResponseEntity.ok(result);
+    }
 }
 
