@@ -46,7 +46,7 @@ public class AccountServiceImpl implements AccountService {
                                         .status(account.getStatus() != null
                                                 ? account.getStatus() : null)
                                 .userType(account.getUserType() != null ? account.getUserType() : null)
-                                        .createAt(account.getCreatedAt())
+                                        .createdAt(account.getCreatedAt())
                                         .build();
                 }
         }
