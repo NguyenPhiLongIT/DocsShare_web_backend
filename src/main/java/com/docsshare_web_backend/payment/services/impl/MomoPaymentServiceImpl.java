@@ -110,6 +110,7 @@ public class MomoPaymentServiceImpl implements MomoPaymentService {
         if (response == null || response.getResultCode() != 0) {
             throw new RuntimeException("Tạo giao dịch MoMo thất bại");
         }
+        log.info("Payment status updated to: {}", response);
 
         return response;
     }
