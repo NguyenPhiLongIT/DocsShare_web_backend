@@ -10,9 +10,9 @@ import java.time.LocalDate;
 public class ForumPostFilterRequest {
     private String q;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_from;
+    private LocalDate createdAt_from;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate createdDate_to;
+    private LocalDate createdAt_to;
     private Boolean isPublic;
     private Boolean hasDocument;
 }

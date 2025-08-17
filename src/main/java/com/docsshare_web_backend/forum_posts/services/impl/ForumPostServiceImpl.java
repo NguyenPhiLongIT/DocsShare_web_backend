@@ -3,6 +3,7 @@ package com.docsshare_web_backend.forum_posts.services.impl;
 import com.docsshare_web_backend.account.dto.responses.UserResponse;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
+import com.docsshare_web_backend.comments.enums.CommentType;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
@@ -74,7 +75,16 @@ public class ForumPostServiceImpl implements ForumPostService {
                     .createdAt(forumPost.getCreatedAt())
                     .updateAt(forumPost.getUpdateAt())
                     .views(forumPost.getViews() != null ? forumPost.getViews() : 0)
-                    .commentsCount(forumPost.getComments() != null ? forumPost.getComments().size() : 0L)
+                    .commentsCount(
+                            forumPost.getComments() != null
+                                    ? forumPost.getComments().stream()
+                                    .filter(comment -> CommentType.NORMAL.equals(comment.getType()))
+                                    .count()
+                                    : 0L
+                    )
+
+
+//                    .commentsCount(forumPost.getComments() != null ? forumPost.getComments().size() : 0L)
                     .savedCount(forumPost.getSavedPosts() != null ? forumPost.getSavedPosts().size() : 0L)
                     .tags(forumPost.getTags())
                     .linkDocument(forumPost.getDocument() != null ? forumPost.getDocument().getSlug() : null)
