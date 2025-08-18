@@ -22,5 +22,5 @@ public class AccountResponse {
     private String avatar;
     private UserType userType;
     private UserStatus status;
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 }

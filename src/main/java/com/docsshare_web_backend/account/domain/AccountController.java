@@ -6,10 +6,14 @@ import com.docsshare_web_backend.account.dto.responses.AccountResponse;
 import com.docsshare_web_backend.account.dto.responses.TopUserAddDocumentResponse;
 import com.docsshare_web_backend.account.enums.AccountStatus;
 import com.docsshare_web_backend.account.services.AccountService;
+import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
+import com.docsshare_web_backend.order.dto.responses.OrderResponse;
 import com.docsshare_web_backend.users.enums.UserStatus;
 import com.docsshare_web_backend.users.enums.UserType;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -125,6 +129,16 @@ public class AccountController {
         return ResponseEntity.ok(accountService.updateAccountStatus(accountId, userType, status));
     }
 
+    @GetMapping("/export")
+    public void exportAccountExcel(
+            @ModelAttribute AccountFilterRequest filterRequest,
+            HttpServletResponse response
+    ) {
+        Page<AccountResponse> page = accountService.getAllAccounts(filterRequest, Pageable.unpaged());
+        List<AccountResponse> data = page.getContent();
+
+        new ExcelExportService<AccountResponse>().export(response, "order_export", data);
+    }
     @GetMapping("/top-users-add-document")
     public ResponseEntity<List<TopUserAddDocumentResponse>> getTopUsersAddDocument(
             @RequestParam("fromDate") LocalDate fromDate,
