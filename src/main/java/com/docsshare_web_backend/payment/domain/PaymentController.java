@@ -69,7 +69,7 @@ public class PaymentController {
     public ResponseEntity<MomoPaymentResponse> createMomoPayment(
             @RequestParam Long orderId,
             @RequestParam Integer amount) throws Exception {
-        log.debug("[MoMo] Create Payment for OrderId: {}, Amount: {}", orderId, amount);
+        log.info("[MoMo] Create Payment for OrderId: {}, Amount: {}", orderId, amount);
         MomoPaymentResponse response = momoPaymentService.createPayment(orderId, amount);
         return ResponseEntity.ok(response);
     }
