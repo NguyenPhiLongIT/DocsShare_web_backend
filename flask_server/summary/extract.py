@@ -14,8 +14,13 @@ def extract_text_from_pdf(file_path):
         with open(file_path, 'rb') as f:
             reader = PdfReader(f)
             num_pages = len(reader.pages)
-            start_page = 2
-            end_page = max(num_pages - 1, start_page)
+
+            # Nếu ít trang thì lấy hết
+            if num_pages <= 3:
+                start_page, end_page = 0, num_pages
+            else:
+                start_page, end_page = 1, num_pages - 1  # bỏ trang đầu/cuối
+
             for i in range(start_page, end_page):
                 page = reader.pages[i]
                 page_text = page.extract_text()
@@ -31,10 +36,16 @@ def extract_text_from_docx(file_path):
         doc = Document(file_path)
         paragraphs = doc.paragraphs
         total = len(paragraphs)
-        start = 2
-        end = max(total - 1, start)
+
+        # Nếu ít paragraph thì lấy hết
+        if total <= 10:
+            start, end = 0, total
+        else:
+            start, end = 1, total - 1  # bỏ phần đầu/cuối thường là cảm ơn, tài liệu tham khảo
+
         for para in paragraphs[start:end]:
-            text += para.text + "\n"
+            if para.text.strip():
+                text += para.text + "\n"
     except Exception as e:
         print(f"[DOCX ERROR] {e}")
     return text.strip()
