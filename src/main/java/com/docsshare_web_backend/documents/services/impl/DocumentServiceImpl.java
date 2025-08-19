@@ -410,6 +410,15 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Override
         @Transactional
+        public void deleteDocument(Long id) {
+                Document document = documentRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+
+                documentRepository.delete(document);
+        }
+
+        @Override
+        @Transactional
         public DocumentResponse incrementView(long documentId){
                 Document document = documentRepository.findById(documentId)
                                 .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + documentId));

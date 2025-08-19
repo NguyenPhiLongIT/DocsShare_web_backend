@@ -27,6 +27,7 @@ public interface DocumentService {
     Page<DocumentResponse> getDocumentsNeedApproved(DocumentFilterRequest request, Pageable pageable);
     DocumentResponse createDocument(DocumentRequest request);
     DocumentResponse updateDocument(long documentId, DocumentUpdateRequest request);
+    void deleteDocument(Long id);
     DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request);
     DocumentResponse incrementView(long documentId);
     List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate from, LocalDate to, int top);

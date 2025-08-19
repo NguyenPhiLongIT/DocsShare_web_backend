@@ -14,6 +14,7 @@ import com.docsshare_web_backend.commons.services.SummaryService;
 import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -170,6 +172,31 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> updateStatus(@PathVariable Long documentId, @RequestBody DocumentUpdateStatusRequest request) {
         DocumentResponse updatedDoc = documentService.updateDocumentStatus(documentId, request);
         return ResponseEntity.ok(updatedDoc);
+    }
+
+    @DeleteMapping("/{documentId}/delete")
+    public ResponseEntity<?> deleteDocument(@PathVariable("documentId") long id) {
+        try {
+            documentService.deleteDocument(id);
+            return ResponseEntity.ok().body(Map.of(
+                    "message", "Delete document successfully",
+                    "documentId", id
+            ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "message", "Not found document with ID: " + id
+            ));
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "message", "Cannot delete document because it is referenced by other records (e.g., forum posts, saved documents)",
+                    "documentId", id
+            ));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Unexpected error while deleting document",
+                    "error", ex.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/{documentId}/incrementView")
