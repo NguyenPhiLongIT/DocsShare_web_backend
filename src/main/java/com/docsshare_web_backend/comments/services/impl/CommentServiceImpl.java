@@ -10,8 +10,12 @@ import com.docsshare_web_backend.comments.models.Comment;
 import com.docsshare_web_backend.comments.repositories.CommentRepository;
 import com.docsshare_web_backend.comments.services.CommentService;
 import com.docsshare_web_backend.commons.services.ToxicService;
+import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
 import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
+import com.docsshare_web_backend.forum_posts.filters.ForumPostFilter;
+import com.docsshare_web_backend.forum_posts.models.ForumPost;
 import com.docsshare_web_backend.forum_posts.repositories.ForumPostRepository;
+import com.docsshare_web_backend.forum_posts.services.impl.ForumPostServiceImpl.ForumPostMapper;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -97,8 +101,16 @@ public class CommentServiceImpl implements CommentService {
                             .toList() : null)
                     .build();
         }
-
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentResponse> getAllComments(CommentFilterRequest request, Pageable pageable) {
+        Specification<Comment> spec = CommentFilter.filterByRequest(request);
+        return commentRepository.findAll(spec, getPageable(pageable))
+                                .map(CommentMapper::toCommentResponse);
+    }
+    
 
     @Override
     @Transactional(readOnly = true)

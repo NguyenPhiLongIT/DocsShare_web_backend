@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface CommentService {
+    Page<CommentResponse> getAllComments(CommentFilterRequest request, Pageable pageable);
     Page<CommentResponse> getCommentByForumPostId(long forumPostId, CommentFilterRequest request, Pageable pageable);
     Page<CommentResponse> getCommentByUserId(long userId, CommentFilterRequest request, Pageable pageable);
     CommentResponse getCommentById(long id);

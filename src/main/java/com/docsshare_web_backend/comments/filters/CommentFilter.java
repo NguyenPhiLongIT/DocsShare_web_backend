@@ -10,5 +10,6 @@ import org.springframework.data.jpa.domain.Specification;
 public class CommentFilter {
     public static Specification<Comment> filterByRequest(CommentFilterRequest request) {
         return CommonFilter.filter(request, Comment.class);
+        
     }
 }

@@ -4,6 +4,9 @@ import com.docsshare_web_backend.comments.dto.requests.CommentRequest;
 import com.docsshare_web_backend.comments.dto.requests.UpdateCommentRequest;
 import com.docsshare_web_backend.comments.dto.responses.CommentResponse;
 import com.docsshare_web_backend.comments.services.CommentService;
+import com.docsshare_web_backend.forum_posts.dto.requests.ForumPostFilterRequest;
+import com.docsshare_web_backend.forum_posts.dto.responses.ForumPostResponse;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,20 @@ import java.util.Map;
 public class CommentController {
     @Autowired
     private CommentService commentService;
+
+    @GetMapping
+    public ResponseEntity<Page<CommentResponse>> getAllComments(
+            @ModelAttribute CommentFilterRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(defaultValue = "desc") String sort
+            ){
+
+        Sort sortPost = sort.equals("asc") ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sortPost);
+        Page<CommentResponse> comment = commentService.getAllComments(request, pageable);
+        return ResponseEntity.ok(comment);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<CommentResponse> getCommentById(@PathVariable long id){
