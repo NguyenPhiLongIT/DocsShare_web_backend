@@ -15,4 +15,5 @@ public interface DocumentCoAuthorRepository
     boolean existsByDocumentIdAndEmail(Long documentId, String email);
     List<DocumentCoAuthor> findByNameAndEmail(String name, String email);
     Optional<DocumentCoAuthor> findByDocumentIdAndEmail(Long documentId, String email);
+    Optional<DocumentCoAuthor> findByDocumentIdAndUserId(Long documentId, Long userId);
 }

@@ -51,20 +51,31 @@ public class DocumentCoAuthorServiceImpl implements DocumentCoAuthorService {
         }
 
         var userOptional = userRepository.findByEmail(request.getEmail());
-        String coAuthorName = userOptional.map(User::getName).orElse(request.getName());
-
-        if (coAuthorName == null || coAuthorName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Name is required for co-author when email is not associated with a user.");
-        }
+        DocumentCoAuthor newCoAuthor;
+        if (userOptional.isPresent()) {
+            newCoAuthor = DocumentCoAuthor.builder()
+                    .user(userOptional.get())
+                    .name(null)      // để null
+                    .email(null)     // để null
+                    .isConfirmed(true)
+                    .document(existingDocument)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        } else {
+            if (request.getName() == null || request.getName().trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                    "Name is required for co-author when email is not associated with a user.");
+            }
     
-        DocumentCoAuthor newCoAuthor = DocumentCoAuthor.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .user(userOptional.orElse(null))
-                .isConfirmed(userOptional.isPresent())
-                .document(existingDocument)
-                .createdAt(LocalDateTime.now())
-                .build();
+            newCoAuthor = DocumentCoAuthor.builder()
+                    .name(request.getName())
+                    .email(request.getEmail())
+                    .user(null)
+                    .isConfirmed(false)
+                    .document(existingDocument)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        }
     
         DocumentCoAuthor savedCoAuthor = documentCoAuthorRepository.save(newCoAuthor);
         return DocumentCoAuthorMapper.toDocumentCoAuthorResponse(savedCoAuthor);
@@ -73,10 +84,21 @@ public class DocumentCoAuthorServiceImpl implements DocumentCoAuthorService {
     @Override
     @Transactional
     public void removeCoAuthor(Long documentId, String email) {
-        DocumentCoAuthor existingCoAuthor = documentCoAuthorRepository
-                .findByDocumentIdAndEmail(documentId, email)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Co-author with email " + email + " not found for document id: " + documentId));
+        var userOptional = userRepository.findByEmail(email);
+
+        DocumentCoAuthor existingCoAuthor;
+
+        if (userOptional.isPresent()) {
+            existingCoAuthor = documentCoAuthorRepository
+                    .findByDocumentIdAndUserId(documentId, userOptional.get().getId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Co-author (user) with email " + email + " not found for document id: " + documentId));
+        } else {
+            existingCoAuthor = documentCoAuthorRepository
+                    .findByDocumentIdAndEmail(documentId, email)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Co-author (guest) with email " + email + " not found for document id: " + documentId));
+        }
 
         documentCoAuthorRepository.delete(existingCoAuthor);
     }

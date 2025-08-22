@@ -77,15 +77,13 @@ public class DocumentServiceImpl implements DocumentService {
 
         public static class DocumentMapper {
                 public static DocumentResponse toDocumentResponse(Document document, Long saveCount) {
-                        List<DocumentCoAuthorResponse> coAuthors = document.getCoAuthors() != null
+                        List<DocumentCoAuthorResponse> coAuthors = 
+                            document.getCoAuthors() != null
                                 ? document.getCoAuthors().stream()
-                                .map(coAuthor -> DocumentCoAuthorResponse.builder()
-                                        .name(coAuthor.getName())
-                                        .email(coAuthor.getEmail())
-                                        .build())
-                                .collect(Collectors.toList())
-                                : Collections.emptyList(); 
-
+                                    .map(DocumentMapper::mapCoAuthorToResponse)
+                                    .collect(Collectors.toList())
+                                : Collections.emptyList();
+                    
                         return DocumentResponse.builder()
                                 .id(document.getId())
                                 .title(document.getTitle())
@@ -96,21 +94,37 @@ public class DocumentServiceImpl implements DocumentService {
                                 .price(document.getPrice())
                                 .views(document.getViews() != null ? document.getViews() : 0L)
                                 .copyrightPath(document.getCopyrightPath())
-                                .moderationStatus(
-                                                document.getModerationStatus() != null
-                                                                ? document.getModerationStatus().toString()
-                                                                : null)
+                                .moderationStatus(document.getModerationStatus() != null 
+                                                    ? document.getModerationStatus().toString() 
+                                                    : null)
                                 .rejectedReason(document.getRejectedReason())
                                 .isPublic(document.isPublic())
                                 .createdAt(document.getCreatedAt())
                                 .authorName(document.getAuthor() != null ? document.getAuthor().getName() : "")
-                                .category(document.getCategory() != null ? document.getCategory().getName()
-                                                : "")
-                                .categoryId(document.getCategory().getId())
+                                .category(document.getCategory() != null ? document.getCategory().getName() : "")
+                                .categoryId(document.getCategory() != null ? document.getCategory().getId() : null)
                                 .coAuthors(coAuthors)
                                 .saveCount(saveCount != null ? saveCount : 0L)
                                 .build();
-                }
+                    }
+                    
+                    private static DocumentCoAuthorResponse mapCoAuthorToResponse(DocumentCoAuthor coAuthor) {
+                        if (coAuthor.getUser() != null) {
+                            return DocumentCoAuthorResponse.builder()
+                                    .id(coAuthor.getId())
+                                    .userId(coAuthor.getUser().getId())
+                                    .name(coAuthor.getUser().getName())
+                                    .email(coAuthor.getUser().getEmail())
+                                    .build();
+                        } else {
+                            return DocumentCoAuthorResponse.builder()
+                                    .id(coAuthor.getId())
+                                    .name(coAuthor.getName())
+                                    .email(coAuthor.getEmail())
+                                    .build();
+                        }
+                    }
+                    
 
                 public static DocumentResponse toDocumentResponse(Document document) {
                         return toDocumentResponse(document, 0L);

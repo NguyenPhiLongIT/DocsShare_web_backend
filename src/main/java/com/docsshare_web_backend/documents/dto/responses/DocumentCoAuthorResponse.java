@@ -12,6 +12,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentCoAuthorResponse {
+    private Long id;
+    private Long userId;
     private String name;
     private String email;
 }
