@@ -14,10 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentCoAuthorRequest {
-    @NotBlank(message = "name should not be blank")
-    @NotNull(message = "name should not be null")
+    private Long userId;
     private String name;
-    @NotBlank(message = "email should not be blank")
-    @NotNull(message = "email should not be null")
     private String email;
 }

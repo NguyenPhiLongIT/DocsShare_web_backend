@@ -118,6 +118,9 @@ public class AuthenticationServiceImpl implements AuthenticationService{
 
         for (DocumentCoAuthor coAuthor : coAuthors) {
             coAuthor.setUser(user);
+            coAuthor.setName(null);   // xoá name/email để tránh duplicate unique key
+            coAuthor.setEmail(null);
+            coAuthor.setIsConfirmed(true);
         }
 
         documentCoAuthorRepository.saveAll(coAuthors);

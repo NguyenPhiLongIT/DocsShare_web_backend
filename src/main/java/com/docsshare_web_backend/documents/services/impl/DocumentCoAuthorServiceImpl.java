@@ -46,6 +46,10 @@ public class DocumentCoAuthorServiceImpl implements DocumentCoAuthorService {
         Document existingDocument = documentRepository.findById(documentId)
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "Document not found with id: " + documentId));
+        if (existingDocument.getAuthor() != null 
+                && existingDocument.getAuthor().getEmail().equals(request.getEmail())) {
+            throw new IllegalStateException("Document author cannot be added as co-author.");
+        }
         if (documentCoAuthorRepository.existsByDocumentIdAndEmail(documentId, request.getEmail())) {
             throw new IllegalStateException("This email is already added as a co-author.");
         }
@@ -53,6 +57,12 @@ public class DocumentCoAuthorServiceImpl implements DocumentCoAuthorService {
         var userOptional = userRepository.findByEmail(request.getEmail());
         DocumentCoAuthor newCoAuthor;
         if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            // Prevent duplicate by userId
+            if (documentCoAuthorRepository.existsByDocumentIdAndUserId(documentId, user.getId())) {
+                throw new IllegalStateException("This user is already added as a co-author.");
+            }
             newCoAuthor = DocumentCoAuthor.builder()
                     .user(userOptional.get())
                     .name(null)      // để null

@@ -13,6 +13,7 @@ public interface DocumentCoAuthorRepository
     extends JpaRepository<DocumentCoAuthor, Long>, JpaSpecificationExecutor<DocumentCoAuthor> {
         
     boolean existsByDocumentIdAndEmail(Long documentId, String email);
+    boolean existsByDocumentIdAndUserId(Long documentId, Long userId);
     List<DocumentCoAuthor> findByNameAndEmail(String name, String email);
     Optional<DocumentCoAuthor> findByDocumentIdAndEmail(Long documentId, String email);
     Optional<DocumentCoAuthor> findByDocumentIdAndUserId(Long documentId, Long userId);
