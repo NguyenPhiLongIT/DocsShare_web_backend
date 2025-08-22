@@ -38,6 +38,7 @@ import com.docsshare_web_backend.notification.models.Notification;
 import com.docsshare_web_backend.notification.repositories.NotificationRepository;
 import com.docsshare_web_backend.saved_documents.dto.responses.SavedDocumentsCountProjection;
 import com.docsshare_web_backend.saved_documents.repositories.SavedDocumentsRepository;
+import com.docsshare_web_backend.users.enums.UserType;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
@@ -341,12 +342,16 @@ public class DocumentServiceImpl implements DocumentService {
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "Document not found with id: " + documentId));
                 
+                var author = userRepository.findById(request.getUserId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "User not found with id: " + request.getUserId()));
                 var category = categoryRepository.findById(request.getCategoryId())
                                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "
                                                 + request.getCategoryId()));
 
-                if (existingDocument.getModerationStatus() == DocumentModerationStatus.APPROVED ||
-                                existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED) {
+                if ((existingDocument.getModerationStatus() == DocumentModerationStatus.APPROVED ||
+                                existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED)
+                   && (author.getUserType() == UserType.USER)) {
                         existingDocument.setModerationStatus(DocumentModerationStatus.PENDING);
                 }
 
@@ -413,8 +418,19 @@ public class DocumentServiceImpl implements DocumentService {
         public void deleteDocument(Long id) {
                 Document document = documentRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-
+            
+                String filePath = document.getFilePath();
                 documentRepository.delete(document);
+                
+                boolean stillUsed = documentRepository.existsByFilePath(filePath);
+                if (!stillUsed) {
+                        try {
+                                String fileId = googleDriveService.extractFileIdFromUrl(filePath);
+                                googleDriveService.deleteFile(fileId); // xóa trên Drive
+                        } catch (Exception e) {
+                                System.err.println("Failed to delete file from Google Drive: " + e.getMessage());
+                        }
+                }
         }
 
         @Override

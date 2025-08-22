@@ -43,7 +43,8 @@ public class GoogleDriveService {
         fileMetadata.setName(file.getOriginalFilename())
                    .setParents(Collections.singletonList(folderId));
 
-        FileContent mediaContent = new FileContent(file.getContentType(), convertedFile);
+        String contentType = resolveContentType(file);
+        FileContent mediaContent = new FileContent(contentType, convertedFile);
         File uploadedFile = drive.files().create(fileMetadata, mediaContent)
                 .setFields("id,webViewLink")
                 .execute();
@@ -119,5 +120,31 @@ public class GoogleDriveService {
             throw new IllegalArgumentException("Invalid Google Drive file path: " + filePath);
         }
     }
+
+    private String resolveContentType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType != null) {
+            return contentType;
+        }
+    
+        String filename = file.getOriginalFilename();
+        if (filename == null) return "application/octet-stream";
+    
+        String ext = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+    
+        switch (ext) {
+            case "txt": return "text/plain";
+            case "csv": return "text/csv";
+            case "pdf": return "application/pdf";
+            case "doc": return "application/msword";
+            case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls": return "application/vnd.ms-excel";
+            case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "ppt": return "application/vnd.ms-powerpoint";
+            case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            default: return "application/octet-stream";
+        }
+    }
+    
     
 }

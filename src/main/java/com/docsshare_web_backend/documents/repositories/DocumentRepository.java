@@ -20,6 +20,7 @@ public interface DocumentRepository
     extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
     Optional<Document> findBySlug(String slug);
     List<Document> findByFileHash(String fileHash);
+    boolean existsByFilePath(String filePath);
 
     @Query(value = """
         SELECT 
@@ -40,9 +41,9 @@ public interface DocumentRepository
         FROM document d
         JOIN user u ON d.author_id = u.id
         JOIN category c ON d.category_id = c.id
-        LEFT JOIN saved_documents sd ON d.id = sd.document_id AND sd.saved_at BETWEEN :from AND :to
-        LEFT JOIN forum_post fp ON d.id = fp.document_id AND fp.created_at BETWEEN :from AND :to
-        LEFT JOIN comment cm ON fp.id = cm.forum_post_id AND cm.created_at BETWEEN :from AND :to
+        LEFT JOIN saved_documents sd ON d.id = sd.document_id
+        LEFT JOIN forum_post fp ON d.id = fp.document_id
+        LEFT JOIN comment cm ON fp.id = cm.forum_post_id
         WHERE d.created_at BETWEEN :from AND :to
             AND d.moderation_status = 'APPROVED'
             AND d.is_public = true

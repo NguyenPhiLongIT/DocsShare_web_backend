@@ -15,6 +15,16 @@ public class DocumentFilter {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (request.getQ() != null && !request.getQ().trim().isEmpty()) {
+                String pattern = "%" + request.getQ().trim().toLowerCase() + "%";
+                predicates.add(
+                        criteriaBuilder.or(
+                                criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                                criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern)
+                        )
+                );
+            }
+
             // Gọi filter chung từ CommonFilter
             Specification<Document> baseSpec = CommonFilter.filter(request, Document.class);
             Predicate basePredicate = baseSpec.toPredicate(root, query, criteriaBuilder);
