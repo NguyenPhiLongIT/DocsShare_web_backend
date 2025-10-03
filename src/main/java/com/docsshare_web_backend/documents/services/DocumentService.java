@@ -32,5 +32,5 @@ public interface DocumentService {
     DocumentResponse incrementView(long documentId);
     List<TopDocumentReportResponse> getTopDocumentsBetween(LocalDate from, LocalDate to, int top);
     List<TopUserAddDocumentResponse> getTopUsersAddDocumentBetween(LocalDate from, LocalDate to, int top);
-
+    
 }

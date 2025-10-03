@@ -34,3 +34,7 @@ build/
 src/main/resources/*.json
 src/main/resources/application-*.properties
 /memory-bank
+
+flask_server/cbir/__pycache__/
+flask_server/summary/__pycache__/
+flask_server/toxic/__pycache__/

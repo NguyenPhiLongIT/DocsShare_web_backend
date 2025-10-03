@@ -10,3 +10,5 @@ torch
 PyPDF2
 python-docx
 # underthesea
+pymupdf
+torchvision

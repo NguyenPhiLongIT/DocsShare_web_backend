@@ -1,4 +1,5 @@
 package com.docsshare_web_backend.documents.services.impl;
+import java.io.File;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import com.docsshare_web_backend.account.dto.responses.TopUserAddDocumentRespons
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +31,9 @@ import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
+import com.docsshare_web_backend.documents.models.DocumentImage;
 import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
+import com.docsshare_web_backend.documents.repositories.DocumentImageRepository;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
@@ -41,7 +45,10 @@ import com.docsshare_web_backend.saved_documents.repositories.SavedDocumentsRepo
 import com.docsshare_web_backend.users.enums.UserType;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.docsshare_web_backend.commons.services.DocumentImageService;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
+import com.docsshare_web_backend.commons.utils.InMemoryMultipartFile;
 import com.docsshare_web_backend.commons.utils.SlugUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -70,6 +77,12 @@ public class DocumentServiceImpl implements DocumentService {
 
         @Autowired
         private NotificationRepository notificationRepository;
+
+        @Autowired
+        private DocumentImageService documentImageService;
+
+        @Autowired
+        private DocumentImageRepository documentImageRepository;
 
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
@@ -323,6 +336,7 @@ public class DocumentServiceImpl implements DocumentService {
                         case ADMIN, STAFF -> DocumentModerationStatus.APPROVED;
                         default -> DocumentModerationStatus.PENDING;
                     };
+
                 Document document = Document.builder()
                         .title(request.getTitle())
                         .description(request.getDescription())
@@ -346,6 +360,25 @@ public class DocumentServiceImpl implements DocumentService {
                             documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);
                         }
                     }
+                
+                List<DocumentImageService.ImageFeatureResult> imageResults =
+                        documentImageService.extractImagesAndFeatures(request.getFile());
+
+                for (DocumentImageService.ImageFeatureResult img : imageResults) {
+                        try {
+                                String featuresJson = new ObjectMapper().writeValueAsString(img.getFeatures());
+                                DocumentImage docImage = DocumentImage.builder()
+                                        .document(savedDocument)
+                                        .imagePath(img.getUrl())       
+                                        .featureVector(featuresJson)  
+                                        .build();
+
+                                documentImageRepository.save(docImage);
+
+                        } catch (Exception e) {
+                                e.printStackTrace();
+                        }
+                }
                 return DocumentMapper.toDocumentResponse(savedDocument);
         }
 
