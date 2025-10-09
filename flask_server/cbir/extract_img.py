@@ -14,7 +14,7 @@ def extract_images_from_dir(pdf_path, output_dir, quality=85, min_size=128):
         page = pdf_doc[page_index]
         image_list = page.get_images(full=True)
 
-        print(f"🔍 {pdf_name} - Trang {page_index+1} có {len(image_list)} ảnh")
+        # print(f"🔍 {pdf_name} - Trang {page_index+1} có {len(image_list)} ảnh")
 
         for img_index, img in enumerate(image_list, start=1):
             xref = img[0]
@@ -35,9 +35,6 @@ def extract_images_from_dir(pdf_path, output_dir, quality=85, min_size=128):
     print(f"✅ Hoàn tất {pdf_name}: {img_counter-1} ảnh đã lưu vào {output_dir}")
 
 def extract_images_from_pdf(pdf_path, quality=85, min_size=128):
-    """
-    Trích xuất ảnh từ PDF và trả về danh sách (tên_ảnh, bytes_ảnh)
-    """
     pdf_doc = fitz.open(pdf_path)
     pdf_name = os.path.splitext(os.path.basename(pdf_path))[0]
 
@@ -46,7 +43,7 @@ def extract_images_from_pdf(pdf_path, quality=85, min_size=128):
     for page_index in range(len(pdf_doc)):
         page = pdf_doc[page_index]
         image_list = page.get_images(full=True)
-        print(f"Trang {page_index+1} có {len(image_list)} ảnh")
+        # print(f"Trang {page_index+1} có {len(image_list)} ảnh")
 
         for img_index, img in enumerate(image_list, start=1):
             xref = img[0]

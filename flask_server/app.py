@@ -2,12 +2,14 @@ import os
 from flask import Flask, request, jsonify
 import tempfile
 import torch
+import pickle
 import base64
+import numpy as np
 from werkzeug.utils import secure_filename
 from toxic.service import predict_toxic
 from summary.service import summarize_text
 from cbir.extract_img import extract_images_from_pdf
-from cbir.service import load_model, transformations, get_latent_features 
+from cbir.service import load_model, transformations, get_latent_features, get_latent_features_img, perform_search
 
 app = Flask(__name__)
 
@@ -81,6 +83,28 @@ def extract_images_api():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+with open("cbir/features.pkl", "rb") as f:
+    db_features = pickle.load(f)
+print(f"Loaded {len(db_features)} image features into memory.")
+print(f"🔍 Example item keys: {list(db_features[0].keys())}")
+
+@app.route("/search-image", methods=["POST"])
+def search_image_api():
+    if "file" not in request.files:
+        return jsonify({"error": "No image file uploaded"}), 400
+
+    file = request.files["file"]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+        file.save(tmp.name) 
+
+    query_features = get_latent_features_img(tmp.name, model, transformations)
+    if query_features is None:
+        return jsonify({"error": "Failed to extract features from image"}), 500
+    
+    results = perform_search(query_features, db_features)
+
+    return jsonify({"results": results})
 
 if __name__ == "__main__":
     app.run(debug=False)

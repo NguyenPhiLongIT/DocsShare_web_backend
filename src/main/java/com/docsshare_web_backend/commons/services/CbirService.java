@@ -20,9 +20,10 @@ import org.springframework.util.MultiValueMap;
 
 import com.docsshare_web_backend.commons.utils.InMemoryMultipartFile;
 import com.docsshare_web_backend.commons.utils.MultipartInputStreamFileResource;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
-public class DocumentImageService {
+public class CbirService {
     @Value("${ml.api.url}")
     private String apiUrl;
 
@@ -72,6 +73,25 @@ public class DocumentImageService {
             e.printStackTrace();
         }
         return List.of();
+    }
+
+    public JsonNode searchImage(MultipartFile file) {
+        try {
+            String url = apiUrl + "/search-image";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, requestEntity, JsonNode.class);
+
+            return response.getBody();
+        } catch (Exception e) {
+            throw new RuntimeException("Error calling Flask API: " + e.getMessage(), e);
+        }
     }
 
     public static class ImageFeatureResult {

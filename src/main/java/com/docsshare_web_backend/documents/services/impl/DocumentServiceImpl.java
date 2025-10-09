@@ -46,7 +46,7 @@ import com.docsshare_web_backend.users.enums.UserType;
 import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.docsshare_web_backend.commons.services.DocumentImageService;
+import com.docsshare_web_backend.commons.services.CbirService;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
 import com.docsshare_web_backend.commons.utils.InMemoryMultipartFile;
 import com.docsshare_web_backend.commons.utils.SlugUtils;
@@ -79,7 +79,7 @@ public class DocumentServiceImpl implements DocumentService {
         private NotificationRepository notificationRepository;
 
         @Autowired
-        private DocumentImageService documentImageService;
+        private CbirService documentImageService;
 
         @Autowired
         private DocumentImageRepository documentImageRepository;
@@ -361,10 +361,10 @@ public class DocumentServiceImpl implements DocumentService {
                         }
                     }
                 
-                List<DocumentImageService.ImageFeatureResult> imageResults =
+                List<CbirService.ImageFeatureResult> imageResults =
                         documentImageService.extractImagesAndFeatures(request.getFile());
 
-                for (DocumentImageService.ImageFeatureResult img : imageResults) {
+                for (CbirService.ImageFeatureResult img : imageResults) {
                         try {
                                 String featuresJson = new ObjectMapper().writeValueAsString(img.getFeatures());
                                 DocumentImage docImage = DocumentImage.builder()

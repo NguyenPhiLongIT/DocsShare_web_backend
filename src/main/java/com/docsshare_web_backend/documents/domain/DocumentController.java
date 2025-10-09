@@ -6,9 +6,11 @@ import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentUpdateStatusRequest;
 import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
+import com.docsshare_web_backend.documents.dto.responses.DocumentImageResponse;
 import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
+import com.docsshare_web_backend.documents.services.DocumentImageService;
 import com.docsshare_web_backend.documents.services.DocumentService;
 import com.docsshare_web_backend.commons.services.SummaryService;
 import com.docsshare_web_backend.commons.services.ExcelExportService;
@@ -21,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +64,8 @@ public class DocumentController {
     private DocumentCoAuthorService documentCoAuthorService;
     @Autowired 
     private ExcelExportService excelExportService;
+    @Autowired
+    private DocumentImageService documentImageService;
 
     @GetMapping
     public ResponseEntity<Page<DocumentResponse>> getAllDocuments(
@@ -249,6 +254,25 @@ public class DocumentController {
         
         List<TopDocumentReportResponse> result = documentService.getTopDocumentsBetween(fromDate, toDate, top);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping(value="/search-similar-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<DocumentImageResponse>> searchSimilarImages(
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+            List<DocumentImageResponse> results = documentImageService.searchSimilarImages(file);
+
+            if (results.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(results);
+
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
+        }
     }
 }
 

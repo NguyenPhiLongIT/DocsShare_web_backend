@@ -12,3 +12,4 @@ python-docx
 # underthesea
 pymupdf
 torchvision
+mysql-connector-python

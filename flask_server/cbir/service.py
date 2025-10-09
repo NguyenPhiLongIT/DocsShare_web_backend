@@ -136,7 +136,7 @@ transformations = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-# Hàm lấy đặc trưng
+# Hàm lấy đặc trưng danh sách ảnh
 def get_latent_features(images, model, transformations):
     features_list = []
 
@@ -159,3 +159,41 @@ def get_latent_features(images, model, transformations):
             continue
 
     return np.stack(features_list, axis=0) if features_list else None
+
+def get_latent_features_img(image_path, model, transformations):
+    try:
+        img = Image.open(image_path).convert("RGB")
+        img = img.resize((256,256))
+        tensor = transformations(img).unsqueeze(0).to(device)
+        with torch.no_grad():
+            latent = model.encoder(tensor).cpu().numpy().flatten()
+        return latent
+    except Exception as e:
+        print(f"⚠️ Bỏ ảnh lỗi: {image_path} ({e})")
+        return None
+
+def euclidean(a, b):
+    # compute and return the euclidean distance between two vectors
+    return np.linalg.norm(a - b)
+
+def perform_search(queryFeatures, db_features, threshold=0.7):
+    results = []
+
+    distances = []
+    for i, item in enumerate(db_features):
+        d = euclidean(queryFeatures, item["featureVector"])
+        distances.append((d, i))
+
+    max_d = max([d for d, _ in distances]) if distances else 1.0
+
+    for d, i in distances:
+        sim = 1 - (d / max_d)
+        if sim >= threshold:
+            results.append({
+                "similarity": sim,
+                "id": db_features[i]["id"],
+                "imagePath": db_features[i]["image_path"]
+            })
+
+    results = sorted(results, key=lambda x: x["similarity"], reverse=True)
+    return results
