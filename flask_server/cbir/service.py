@@ -192,7 +192,8 @@ def perform_search(queryFeatures, db_features, threshold=0.7):
             results.append({
                 "similarity": sim,
                 "id": db_features[i]["id"],
-                "imagePath": db_features[i]["image_path"]
+                "imagePath": db_features[i]["image_path"],
+                "documentId": db_features[i]["documentId"]
             })
 
     results = sorted(results, key=lambda x: x["similarity"], reverse=True)

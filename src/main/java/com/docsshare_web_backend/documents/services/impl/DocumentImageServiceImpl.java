@@ -12,9 +12,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.docsshare_web_backend.commons.services.CbirService;
 import com.docsshare_web_backend.documents.dto.responses.DocumentImageResponse;
+import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.models.DocumentImage;
 import com.docsshare_web_backend.documents.repositories.DocumentImageRepository;
 import com.docsshare_web_backend.documents.services.DocumentImageService;
+import com.docsshare_web_backend.documents.services.DocumentService;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.extern.slf4j.Slf4j;
@@ -26,33 +28,15 @@ public class DocumentImageServiceImpl implements DocumentImageService {
     private DocumentImageRepository documentImageRepository;
     @Autowired
     private CbirService cbirService;
+    @Autowired
+    private DocumentService documentService;
 
     public static class DocumentImageMapper {
         public static DocumentImageResponse toDocumentImageResponse(DocumentImage img) {
-            List<Double> featureVector = new ArrayList<>();
-
-            try {
-                // parse string lưu trong database thành list<Double>
-                featureVector = Arrays.stream(
-                        img.getFeatureVector()
-                                .replace("[", "")
-                                .replace("]", "")
-                                .split(",")
-                )
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(Double::parseDouble)
-                .collect(Collectors.toList());
-            } catch (Exception e) {
-                log.warn("⚠️ Lỗi parse featureVector cho ảnh {}: {}", img.getImagePath(), e.getMessage());
-            }
-
             return DocumentImageResponse.builder()
                     .id(img.getId())
                     .imagePath(img.getImagePath())
-                    .uploadedAt(img.getUploadedAt())
                     .documentId(img.getDocument().getId())
-                    .featureVector(featureVector)
                     .build();
         }
     }
@@ -73,9 +57,23 @@ public class DocumentImageServiceImpl implements DocumentImageService {
 
         List<DocumentImageResponse> results = new ArrayList<>();
         for (JsonNode item : response.get("results")) {
+            Long documentId = item.has("documentId") && !item.get("documentId").isNull()
+                ? item.get("documentId").asLong()
+                : null;
+
+        DocumentResponse documentResponse = null;
+        if (documentId != null) {
+            try {
+                documentResponse = documentService.getDocument(documentId);
+            } catch (Exception e) {
+                System.out.println("Document not found for ID: " + documentId);
+            }
+        }
             results.add(DocumentImageResponse.builder()
                     .id(item.get("id").asLong())
                     .imagePath(item.get("imagePath").asText())
+                    .documentId(documentId)
+                    .document(documentResponse)
                     .build());
         }
 

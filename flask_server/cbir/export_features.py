@@ -10,13 +10,14 @@ conn = mysql.connector.connect(
     database="docsshare_db"
 )
 cursor = conn.cursor(dictionary=True)
-cursor.execute("SELECT id, image_path, feature_vector FROM document_image")
+cursor.execute("SELECT id, image_path, document_id, feature_vector FROM document_image")
 
 features = []
 for row in cursor.fetchall():
     features.append({
         "id": row["id"],
-        "image_path": row["image_path"],
+        "imagePath": row["image_path"],
+        "documentId": row["document_id"],
         "featureVector": np.array(eval(row["feature_vector"]))
     })
 
