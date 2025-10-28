@@ -1,6 +1,7 @@
 import numpy as np
 import joblib
-import re, string
+import os, re, string
+from pathlib import Path
 # import nltk
 # nltk.download('punkt')
 # nltk.download('wordnet')
@@ -12,17 +13,24 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer 
 from scipy.sparse import hstack
 
-# Loading the TFIF vectorizers
-word_tfidf = joblib.load("models/word_tfidf_vectorizer.pkl")
-char_tfidf = joblib.load("models/char_tfidf_vectorizer.pkl")
+PKG_DIR = Path(__file__).resolve().parent
+MODEL_DIR = Path(os.getenv("TOXIC_MODEL_DIR", PKG_DIR / "models")).resolve()
 
-# Loading the LR models for each label
-lr_toxic = joblib.load("models/logistic_regression_toxic.pkl")
-lr_severe = joblib.load("models/logistic_regression_severe_toxic.pkl")
-lr_obscene = joblib.load("models/logistic_regression_obscene.pkl")
-lr_threat = joblib.load("models/logistic_regression_threat.pkl")
-lr_insult = joblib.load("models/logistic_regression_insult.pkl")
-lr_identity = joblib.load("models/logistic_regression_identity_hate.pkl")
+def _load_joblib(name: str):
+    p = MODEL_DIR / name
+    if not p.exists():
+        raise FileNotFoundError(f"Không tìm thấy: {p} (cwd={Path.cwd()})")
+    return joblib.load(str(p))
+
+word_tfidf = _load_joblib("word_tfidf_vectorizer.pkl")
+char_tfidf = _load_joblib("char_tfidf_vectorizer.pkl")
+
+lr_toxic = _load_joblib("logistic_regression_toxic.pkl")
+lr_severe = _load_joblib("logistic_regression_severe_toxic.pkl")
+lr_obscene = _load_joblib("logistic_regression_obscene.pkl")
+lr_threat = _load_joblib("logistic_regression_threat.pkl")
+lr_insult = _load_joblib("logistic_regression_insult.pkl")
+lr_identity = _load_joblib("logistic_regression_identity_hate.pkl")
 
 
 # Creating a function to clean the training dataset
@@ -95,5 +103,7 @@ def predict_toxic(text_input):
     return result 
 
 # # For AWS
-# if __name__ == '__main__':
-#     app.run(host="0.0.0.0", port=8080)
+if __name__ == '__main__':
+    text = "This is a sample comment text!"
+    output = predict_toxic(text)
+    print(output)
