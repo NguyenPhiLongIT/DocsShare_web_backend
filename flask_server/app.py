@@ -1,4 +1,4 @@
-import os
+import os, re
 from flask import Flask, request, jsonify
 import tempfile
 import torch
@@ -7,6 +7,7 @@ import base64
 import numpy as np
 from werkzeug.utils import secure_filename
 from toxic.service import predict_toxic
+from toxic.service_vn import predict_texts
 from summary.service import summarize_text
 from cbir.extract_img import extract_images_from_pdf
 from cbir.service import load_model, transformations, get_latent_features, get_latent_features_img, perform_search
@@ -16,11 +17,90 @@ app = Flask(__name__)
 MODEL_PATH = "cbir/conv_autoencoderv2_200ep_3.pt"
 model = load_model(MODEL_PATH)
 
+LABELS = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+
+THRESHOLDS = {
+    "vi": {"toxic":0.8,"severe_toxic":0.8,"obscene":0.8,"threat":0.8,"insult":0.8,"identity_hate":0.8},
+    "en": {"toxic":0.6,"severe_toxic":0.3,"obscene":0.6,"threat":0.3,"insult":0.6,"identity_hate":0.3},
+}
+
+_VI_REGEX = re.compile(r"[ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]", re.IGNORECASE)
+def simple_lang_detect(text: str) -> str:
+    return "vi" if _VI_REGEX.search(text or "") else "en"
+
+def scores_to_labels(scores: dict, thr_map: dict) -> dict:
+    labs = {k: int(scores.get(k, 0.0) >= thr_map.get(k, 0.5)) for k in LABELS}
+    if labs.get("severe_toxic", 0) == 1:
+        labs["toxic"] = 1
+    return labs
+
+def run_en(text: str):
+    """
+    predict_toxic() của bạn trả % 0..100; chuyển về 0..1 + map schema.
+    """
+    raw = predict_toxic(text)  
+    scores = {k: float(raw.get(k, 0.0))/100.0 for k in LABELS}
+    thr = THRESHOLDS["en"]
+    labels = scores_to_labels(scores, thr)
+    return {
+        "lang": "en",
+        "scores": scores,
+        "labels": labels,
+        "thresholds": thr,
+        "model": {"used": "en-toxic-lr"},
+        "decision": decide(labels)
+    }
+
+def run_vi(text: str):
+    """
+    predict_texts() của bạn trả list; lấy phần tử đầu, đã là 0..1.
+    """
+    out_list = predict_texts([text]) 
+    item = out_list[0]
+    scores = item["probs"]              
+    thr = THRESHOLDS["vi"]
+    labels = scores_to_labels(scores, thr)
+    return {
+        "lang": "vi",
+        "scores": scores,
+        "labels": labels,
+        "thresholds": thr,
+        "model": {"used": "vi-toxic-xlm-r"},
+        "decision": decide(labels)
+    }
+
+def decide(labels: dict) -> str:
+    if labels.get("identity_hate") == 1 or labels.get("threat") == 1:
+        return "block"
+    return "review" if any(labels.values()) else "allow"
+
 @app.route("/predict", methods=["POST"])
-def predict_api():
-    data = request.get_json()
-    text = data.get("text", "")
-    return jsonify(predict_toxic(text))
+def predict_toxic_api():
+    data = request.get_json(force=True) or {}
+    text = (data.get("text") or "").strip()
+    lang = (data.get("lang") or "auto").lower()
+
+    if not text:
+        return jsonify({"error": "Missing 'text'"}), 400
+
+    if lang == "auto":
+        lang = simple_lang_detect(text)  # "vi" hoặc "en"
+
+    try:
+        if lang == "vi":
+            res = run_vi(text)
+        elif lang == "en":
+            res = run_en(text)
+        else:
+            res = run_en(text)  
+
+        # scores = res.get("scores", {})  
+        labels = res.get("labels", {})
+        # percents = {k: round(float(scores.get(k, 0.0)) * 100, 2) for k in LABELS}
+        out = {k: int(bool(labels.get(k, 0))) for k in LABELS}
+        return jsonify(out)
+    except Exception:
+        return jsonify({"error": "internal_error"}), 500
 
 @app.route("/summarize", methods=["POST"])
 def summarize_api():
