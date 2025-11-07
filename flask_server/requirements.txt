@@ -11,6 +11,9 @@ torch
 PyPDF2
 python-docx
 # underthesea
+pymupdf
+torchvision
+mysql-connector-python
 sentence-transformers
 faiss-cpu
 pandas

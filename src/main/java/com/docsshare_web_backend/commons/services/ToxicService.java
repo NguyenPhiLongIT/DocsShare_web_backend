@@ -3,20 +3,15 @@ package com.docsshare_web_backend.commons.services;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
-
-import jakarta.annotation.PostConstruct;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.nio.charset.StandardCharsets;
+
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -25,79 +20,59 @@ public class ToxicService {
     private String apiUrl;    
 
     @Data
-    public static class ToxicResult {
-        private String text;
-        private double toxic;
-        private double severe_toxic;
-        private double obscene;
-        private double threat;
-        private double insult;
-        private double identity_hate;
+    public static class ToxicLabels {
+        private Integer toxic;
+        @JsonProperty("severe_toxic") private Integer severeToxic;
+        private Integer obscene;
+        private Integer threat;
+        private Integer insult;
+        @JsonProperty("identity_hate") private Integer identityHate;
+
+        private static int v(Integer x) { return x == null ? 0 : x; }
+
+        public boolean anyPositive() {
+            return v(toxic)==1 || v(severeToxic)==1 || v(obscene)==1
+                || v(threat)==1 || v(insult)==1 || v(identityHate)==1;
+        }
     }
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private Set<String> vietnameseBadWords = new HashSet<>();
-
-    @PostConstruct
-    public void init() {
-        try {
-            ClassPathResource resource = new ClassPathResource("vn_offensive_words.txt");
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    vietnameseBadWords.add(line.trim().toLowerCase());
-                }
-            }
-            log.info("Loaded {} Vietnamese offensive words.", vietnameseBadWords.size());
-        } catch (Exception e) {
-            log.error("Failed to load vn_offensive_words.txt", e);
-        }
-    }
-
-    public ToxicResult predict(String text) {
+    public ToxicLabels predict(String text) {
         String url = apiUrl + "/predict";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, String> body = new HashMap<>();
+        Map<String, Object> body = new HashMap<>();
         body.put("text", text);
+        body.put("lang", "auto"); 
 
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<ToxicResult> response =
-                    restTemplate.postForEntity(url, entity, ToxicResult.class);
-            return response.getBody();
+            ResponseEntity<ToxicLabels> res =
+                restTemplate.postForEntity(url, entity, ToxicLabels.class);
+            if (res.getBody() == null) throw new IllegalStateException("Empty response from ML API");
+            return res.getBody();
+        } catch (HttpStatusCodeException e) {
+            String err = e.getResponseBodyAsString(StandardCharsets.UTF_8);
+            log.error("ML API /predict error: status={}, body={}", e.getStatusCode(), err, e);
+            throw new RuntimeException("Machine learning service error: " + e.getStatusCode(), e);
         } catch (Exception e) {
             log.error("Error calling ML API /predict", e);
             throw new RuntimeException("Machine learning service unavailable", e);
         }
     }
 
-    public void validateTextSafety(String text, String label) {
-        if (containsVietnameseOffensiveWords(text)) {
-            throw new IllegalArgumentException(label + " chứa ngôn ngữ không phù hợp và không thể đăng.");
-        }
-
-        ToxicResult result = predict(text);
-        if (isToxic(result)) {
-            throw new IllegalArgumentException(label + " contains inappropriate language and cannot be posted.");
-        }
+    public boolean isToxic(String text) {
+        ToxicLabels labels = predict(text);
+        return labels.anyPositive();
     }
 
-    private boolean containsVietnameseOffensiveWords(String text) {
-        String normalized = text.toLowerCase();
-        for (String badWord : vietnameseBadWords) {
-            if (normalized.contains(badWord)) {
-                return true;
-            }
+    public void validateTextSafety(String text, String fieldLabel) {
+        if (isToxic(text)) {
+            throw new IllegalArgumentException(fieldLabel + " contains inappropriate language and cannot be posted!");
         }
-        return false;
-    }
-
-    private boolean isToxic(ToxicResult result) {
-        return result.getToxic() > 60 || result.getInsult() > 60 || result.getObscene() > 60 || result.getThreat() > 30 || result.getSevere_toxic() > 30 || result.getIdentity_hate() > 30;
     }
 }
