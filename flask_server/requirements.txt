@@ -1,4 +1,5 @@
 flask
+flask-cors
 joblib
 nltk==3.8.1
 scikit-learn
@@ -10,3 +11,7 @@ torch
 PyPDF2
 python-docx
 # underthesea
+sentence-transformers
+faiss-cpu
+pandas
+numpy

@@ -3,8 +3,11 @@ from flask import Flask, request, jsonify
 import tempfile
 from toxic.service import predict_toxic
 from summary.service import summarize_text
+from semantic.semantic_search import semantic_bp
+
 
 app = Flask(__name__)
+app.register_blueprint(semantic_bp)
 
 @app.route("/predict", methods=["POST"])
 def predict_api():
