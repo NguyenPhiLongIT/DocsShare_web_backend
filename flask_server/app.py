@@ -11,8 +11,10 @@ from toxic.service_vn import predict_texts
 from summary.service import summarize_text
 from cbir.extract_img import extract_images_from_pdf
 from cbir.service import load_model, transformations, get_latent_features, get_latent_features_img, perform_search
+from semantic.semantic_search import semantic_bp
 
 app = Flask(__name__)
+app.register_blueprint(semantic_bp)
 
 MODEL_PATH = "cbir/conv_autoencoderv2_200ep_3.pt"
 model = load_model(MODEL_PATH)
