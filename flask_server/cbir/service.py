@@ -179,21 +179,27 @@ def euclidean(a, b):
 def perform_search(queryFeatures, db_features, threshold=0.7):
     results = []
 
+    if not db_features:
+        return results
+
     distances = []
     for i, item in enumerate(db_features):
         d = euclidean(queryFeatures, item["featureVector"])
-        distances.append((d, i))
+        distances.append((float(d), i))  
 
-    max_d = max([d for d, _ in distances]) if distances else 1.0
+    max_d = max(d for d, _ in distances) or 1.0  
 
     for d, i in distances:
-        sim = 1 - (d / max_d)
+        sim = 1 - (d / max_d) if max_d != 0 else 0.0
+
+        feat = db_features[i]
+
         if sim >= threshold:
             results.append({
-                "similarity": sim,
-                "id": db_features[i]["id"],
-                "imagePath": db_features[i]["image_path"],
-                "documentId": db_features[i]["documentId"]
+                "similarity": float(sim),  
+                "id": int(feat["id"]) if feat["id"] is not None else None,
+                "imagePath": str(feat["imagePath"]),
+                "documentId": int(feat["documentId"]) if feat["documentId"] is not None else None
             })
 
     results = sorted(results, key=lambda x: x["similarity"], reverse=True)

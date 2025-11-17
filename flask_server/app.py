@@ -10,6 +10,7 @@ from toxic.service import predict_toxic
 from toxic.service_vn import predict_texts
 from summary.service import summarize_text
 from cbir.extract_img import extract_images_from_pdf
+from cbir.export_features import load_features_from_db
 from cbir.service import load_model, transformations, get_latent_features, get_latent_features_img, perform_search
 from semantic.semantic_search import semantic_bp
 
@@ -166,10 +167,42 @@ def extract_images_api():
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-with open("cbir/features.pkl", "rb") as f:
-    db_features = pickle.load(f)
+
+db_features = load_features_from_db()
 print(f"Loaded {len(db_features)} image features into memory.")
-print(f"🔍 Example item keys: {list(db_features[0].keys())}")
+
+@app.route("/refresh-features", methods=["POST"])
+def refresh_features():
+    global db_features
+    db_features = load_features_from_db()
+    return jsonify({"message": f"Reloaded {len(db_features)} features from DB"})
+
+@app.route("/add-features", methods=["POST"])
+def add_features():
+    global db_features
+    data = request.get_json()
+
+    if not data or "items" not in data:
+        return jsonify({"error": "Missing 'items' in body"}), 400
+
+    count = 0
+    for item in data["items"]:
+        try:
+            feature_vec = np.array(item["featureVector"], dtype=np.float32)
+            db_features.append({
+                "id": item["id"],
+                "imagePath": item["imagePath"],
+                "documentId": item["documentId"],
+                "featureVector": feature_vec
+            })
+            count += 1
+        except Exception as e:
+            print("Error adding feature:", e)
+
+    return jsonify({
+        "message": f"Added {count} features",
+        "total": len(db_features)
+    })
 
 @app.route("/search-image", methods=["POST"])
 def search_image_api():

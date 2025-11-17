@@ -3,6 +3,7 @@ package com.docsshare_web_backend.commons.services;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -91,6 +92,28 @@ public class CbirService {
             return response.getBody();
         } catch (Exception e) {
             throw new RuntimeException("Error calling Flask API: " + e.getMessage(), e);
+        }
+    }
+
+    public void pushFeatureToFlask(Long id, Long documentId, String imagePath, List<Double> features) {
+        String url = apiUrl + "/add-features";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", id);
+            item.put("imagePath", imagePath);
+            item.put("documentId", documentId);
+            item.put("featureVector", features);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("items", List.of(item));
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            restTemplate.postForEntity(url, request, Void.class);
+        } catch (Exception e) {
+            System.err.println("Failed to push feature to Flask: " + e.getMessage());
         }
     }
 

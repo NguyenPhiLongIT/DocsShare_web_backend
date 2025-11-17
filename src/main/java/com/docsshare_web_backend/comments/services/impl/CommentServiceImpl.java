@@ -171,7 +171,7 @@ public class CommentServiceImpl implements CommentService {
                         () -> new EntityNotFoundException("Forum post not found with id: "
                                 + request.getForumPostId()));
 
-        toxicService.validateTextSafety(request.getContent(), "Contend");
+        toxicService.validateTextSafety(request.getContent(), "Content");
 
         CommentType type = request.getType() != null
                 ? CommentType.valueOf(request.getType())

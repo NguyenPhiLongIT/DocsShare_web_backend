@@ -102,5 +102,5 @@ def predict_texts(
     return outs
 
 if __name__ == "__main__":
-    sample_text = "tài liệu này thật sâu sắc và hữu ích"
+    sample_text = "mèo dễ thương quá"
     print(predict_texts([sample_text]))

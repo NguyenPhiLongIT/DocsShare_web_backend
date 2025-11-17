@@ -76,7 +76,7 @@ class PhoBERTSummarizer:
             embeddings.append(outputs.last_hidden_state[:, 0, :].cpu().numpy()[0])
         return np.array(embeddings)
 
-    def summarize(self, text, ratio=0.3):
+    def summarize(self, text, ratio=0.3):   # ratio: tỷ lệ câu được chọn (lớn thì tóm tắt dài hơn)
         sentences = simple_sentence_tokenize(clean_text(text))
         if len(sentences) < 3:
             return text
@@ -99,5 +99,5 @@ def summarize_text(raw_text):
     text = extract_text(raw_text)
     preprocessed = preprocess_for_summary(text)
     # tfidf_selected = tfidf_filter(preprocessed, ratio=0.3)
-    summary = phobert_summarizer.summarize(preprocessed, ratio=0.2)
+    summary = phobert_summarizer.summarize(preprocessed, ratio=0.15)
     return summary

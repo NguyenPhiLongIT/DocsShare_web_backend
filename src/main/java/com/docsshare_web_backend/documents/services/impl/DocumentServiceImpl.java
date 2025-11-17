@@ -366,6 +366,7 @@ public class DocumentServiceImpl implements DocumentService {
 
                 for (CbirService.ImageFeatureResult img : imageResults) {
                         try {
+                                List<Double> features = img.getFeatures();
                                 String featuresJson = new ObjectMapper().writeValueAsString(img.getFeatures());
                                 DocumentImage docImage = DocumentImage.builder()
                                         .document(savedDocument)
@@ -373,7 +374,14 @@ public class DocumentServiceImpl implements DocumentService {
                                         .featureVector(featuresJson)  
                                         .build();
 
-                                documentImageRepository.save(docImage);
+                                DocumentImage savedDocImage = documentImageRepository.save(docImage);
+
+                                documentImageService.pushFeatureToFlask(
+                                        savedDocImage.getId(),
+                                        savedDocImage.getDocument().getId(),
+                                        savedDocImage.getImagePath(),
+                                        features
+                                );
 
                         } catch (Exception e) {
                                 e.printStackTrace();
