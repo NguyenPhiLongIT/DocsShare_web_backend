@@ -11,35 +11,55 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Slf4j
 @Service
 public class SemanticSearchService {
 
     @Value("${ml.api.url}")
-    private String apiUrl;  // ví dụ: http://127.0.0.1:5000
+    private String apiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     // ===================== DTOs =====================
 
     @Data
-    @Schema(description = "Kết quả của từng danh mục trong tìm kiếm thông minh")
-    public static class SemanticResult {
+    @Schema(description = "Tài liệu trong kết quả tìm kiếm")
+    public static class DocumentResult {
 
-        @JsonProperty("category_id")
-        @Schema(description = "ID của danh mục")
-        private Long categoryId;
+        @JsonProperty("doc_id")
+        @Schema(description = "ID của tài liệu")
+        private Long docId;
 
-        @JsonProperty("category_name")
-        @Schema(description = "Tên danh mục")
-        private String categoryName;
+        @Schema(description = "Tiêu đề tài liệu")
+        private String title;
 
-        @Schema(description = "Tóm tắt nội dung danh mục")
+        @Schema(description = "Tóm tắt nội dung tài liệu")
         private String summary;
 
         @Schema(description = "Độ tương đồng (0–1)")
         private Double similarity;
+    }
+
+    @Data
+    @Schema(description = "Kết quả của từng chủ đề/topic trong tìm kiếm thông minh")
+    public static class TopicResult {
+
+        @JsonProperty("topic_id")
+        @Schema(description = "ID của chủ đề")
+        private Long topicId;
+
+        @JsonProperty("topic_name")
+        @Schema(description = "Tên chủ đề")
+        private String topicName;
+
+        @JsonProperty("topic_similarity")
+        @Schema(description = "Độ tương đồng của chủ đề (0–1)")
+        private Double topicSimilarity;
+
+        @Schema(description = "Danh sách tài liệu trong chủ đề này")
+        private List<DocumentResult> documents;
     }
 
     @Data
@@ -49,8 +69,12 @@ public class SemanticSearchService {
         @Schema(description = "Truy vấn người dùng nhập vào")
         private String query;
 
-        @Schema(description = "Danh sách kết quả tìm kiếm thông minh")
-        private SemanticResult[] results;
+        @JsonProperty("sim_threshold")
+        @Schema(description = "Ngưỡng độ tương đồng được sử dụng")
+        private Double simThreshold;
+
+        @Schema(description = "Danh sách kết quả tìm kiếm theo chủ đề")
+        private List<TopicResult> results;
     }
 
     // ===================== SERVICE LOGIC =====================
@@ -58,7 +82,7 @@ public class SemanticSearchService {
     public SemanticResponse search(String query) {
         try {
             String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = apiUrl + "/semantic/search?query=" + encoded + "&top_k=5";
+            String url = apiUrl + "/semantic/search?query=" + encoded;
             log.info("🔍 Gọi Flask Semantic API: {}", url);
 
             ResponseEntity<SemanticResponse> response =
