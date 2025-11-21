@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.commons.services;
 
+import com.docsshare_web_backend.documents.dto.responses.DocumentCoAuthorResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -11,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -37,6 +39,30 @@ public class SemanticSearchService {
 
         @Schema(description = "Tóm tắt nội dung tài liệu")
         private String summary;
+
+        @Schema(description = "Loại tệp tài liệu")
+        private String fileType;
+
+        @Schema(description = "Lượt xem tài liệu")
+        private Long views;
+
+        @Schema(description = "Giá tài liệu")
+        private Double price;
+
+        @Schema(description = "Ngày tạo tài liệu")
+        private LocalDateTime createdAt;
+
+        @Schema(description = "Tên tác giả tài liệu")
+        private String authorName;
+
+        @Schema(description = "Tên thể loại tài liệu")
+        private String category;
+
+        @Schema(description = "Đồng tác giả tài liệu")
+        private List<DocumentCoAuthorResponse> coAuthors;
+
+        @Schema(description = "Số lượng lưu tài liệu")
+        private Long saveCount;
 
         @Schema(description = "Độ tương đồng (0–1)")
         private Double similarity;
