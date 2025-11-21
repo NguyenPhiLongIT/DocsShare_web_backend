@@ -17,4 +17,4 @@ mysql-connector-python
 sentence-transformers
 faiss-cpu
 pandas
-numpy
+numpy<2.0  # Pin to numpy 1.x for pickle compatibility with semantic_search_model.pkl
