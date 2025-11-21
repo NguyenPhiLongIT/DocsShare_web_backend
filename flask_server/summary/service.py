@@ -6,6 +6,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoTokenizer, AutoModel
 from .extract import extract_text
+import os
+os.environ["TRANSFORMERS_NO_TF"] = "1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 
 # Dùng GPU nếu có
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -13,16 +17,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def sentence_tokenize(text):
     return re.split(r'(?<=[.!?])\s+', text)
 
-# ===== Tiền xử lý =====
 def clean_text(text):
-    """Clean and normalize Vietnamese text."""
     text = re.sub(r'\s+', ' ', text.strip())
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'\s+', ' ', text.strip())
     return text
 
 def simple_sentence_tokenize(text):
-    """Simple regex-based sentence tokenizer for Vietnamese text."""
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return [s.strip() for s in sentences if s.strip()]
 
@@ -38,8 +39,6 @@ def preprocess_for_summary(text: str) -> str:
     
     return text
 
-
-# ===== TF-IDF Summary =====
 def tfidf_filter(text, ratio=0.3):
     sentences = simple_sentence_tokenize(clean_text(text))
     if len(sentences) < 3:
@@ -59,9 +58,6 @@ def tfidf_filter(text, ratio=0.3):
     top_sentences = [s for _, s in ranked[:top_k]]
     return " ".join(top_sentences)
 
-
-
-# ===== PhoBERT Summary =====
 class PhoBERTSummarizer:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base")
@@ -76,7 +72,7 @@ class PhoBERTSummarizer:
             embeddings.append(outputs.last_hidden_state[:, 0, :].cpu().numpy()[0])
         return np.array(embeddings)
 
-    def summarize(self, text, ratio=0.3):   # ratio: tỷ lệ câu được chọn (lớn thì tóm tắt dài hơn)
+    def summarize(self, text, ratio=0.3):
         sentences = simple_sentence_tokenize(clean_text(text))
         if len(sentences) < 3:
             return text
@@ -90,9 +86,6 @@ class PhoBERTSummarizer:
         
         return " ".join([sentences[i] for i in top_ids])
 
-
-
-# ===== Dịch vụ chính =====
 phobert_summarizer = PhoBERTSummarizer()
 
 def summarize_text(raw_text):

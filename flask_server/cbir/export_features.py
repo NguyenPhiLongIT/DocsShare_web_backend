@@ -7,7 +7,7 @@ def load_features_from_db():
         host="localhost",
         port=3306,
         user="root",
-        password="Long10092003",
+        password="123456",
         database="docsshare_db"
     )
     cursor = conn.cursor(dictionary=True)
