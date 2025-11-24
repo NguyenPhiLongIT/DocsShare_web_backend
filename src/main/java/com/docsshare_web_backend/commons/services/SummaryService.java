@@ -35,4 +35,23 @@ public class SummaryService {
         }
         return null;
     }
+
+    public String extractText(MultipartFile file) {
+        String url = apiUrl + "/extract-text";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
+    
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+    
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            return response.getBody().get("text").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

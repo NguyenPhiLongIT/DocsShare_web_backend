@@ -220,6 +220,17 @@ public class DocumentController {
         }
     }
 
+    @PostMapping(value = "/extractText", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> extractText(@RequestParam("file") MultipartFile file) {
+        String text = summaryService.extractText(file);
+        if (text != null) {
+            return ResponseEntity.ok(Map.of("text", text));
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Could not generate text"));
+        }
+    }
+
     @PostMapping("/addCoAuthor")
     public ResponseEntity<DocumentCoAuthorResponse> addCoAuthor(@RequestParam long documentId, 
                 @RequestBody @Valid DocumentCoAuthorRequest request) {
