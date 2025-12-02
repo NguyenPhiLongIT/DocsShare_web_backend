@@ -11,7 +11,6 @@ from werkzeug.utils import secure_filename
 
 from toxic.service import predict_toxic
 
-# Thử import model tiếng Việt; nếu lỗi thì fallback
 try:
     from toxic.service_vn import predict_texts
     VN_MODEL_AVAILABLE = True
@@ -184,13 +183,42 @@ def extract_text_api():
     if file.filename == "":
         return jsonify({"error": "Empty filename"}), 400
 
-    ext = os.path.splitext(file.filename)[-1] or ".pdf"
+    # Lấy tên file gốc (nếu có) và mimetype
+    filename = secure_filename(file.filename or "")
+    mimetype = (file.mimetype or "").lower()
+    ext = os.path.splitext(filename)[-1].lower()
 
+    # Đoán lại ext nếu thiếu / sai dựa trên mimetype
+    if ext not in [".pdf", ".docx"]:
+        if "pdf" in mimetype:
+            ext = ".pdf"
+        elif "word" in mimetype or "officedocument.wordprocessingml.document" in mimetype:
+            ext = ".docx"
+        else:
+            # nếu vẫn không đoán được thì giả định PDF (tài liệu của bạn chủ yếu là pdf)
+            ext = ".pdf"
+
+    print(f"[extract-text] filename={filename!r}, mimetype={mimetype!r}, use ext={ext!r}")
+
+    # Tạo file tạm có đúng đuôi
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
         file.save(tmp.name)
-        text = extract_text(tmp.name)
+        tmp_path = tmp.name
+
+    try:
+        text = extract_text(tmp_path)
+    except Exception as e:
+        print("[extract-text][ERROR]", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            os.remove(tmp_path)
+        except:
+            pass
 
     return jsonify({"text": text})
+
+
 
 @app.route("/extract-images", methods=["POST"])
 def extract_images_api():
@@ -198,6 +226,7 @@ def extract_images_api():
         return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
+    print("[extract-text] filename from client:", repr(file.filename), "mimetype:", file.mimetype)
     filename = secure_filename(file.filename)
 
     temp_dir = tempfile.gettempdir()
