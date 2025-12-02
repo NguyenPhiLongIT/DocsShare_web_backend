@@ -1,5 +1,5 @@
 package com.docsshare_web_backend.documents.services.impl;
-import java.io.File;
+
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,9 +11,9 @@ import java.util.stream.Collectors;
 
 import com.docsshare_web_backend.account.dto.responses.TopUserAddDocumentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +37,7 @@ import com.docsshare_web_backend.documents.repositories.DocumentImageRepository;
 import com.docsshare_web_backend.documents.repositories.DocumentRepository;
 import com.docsshare_web_backend.documents.services.DocumentCoAuthorService;
 import com.docsshare_web_backend.documents.services.DocumentService;
+import com.docsshare_web_backend.documents.events.DocumentCreatedEvent;
 import com.docsshare_web_backend.notification.enums.NotificationType;
 import com.docsshare_web_backend.notification.models.Notification;
 import com.docsshare_web_backend.notification.repositories.NotificationRepository;
@@ -48,7 +49,7 @@ import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.docsshare_web_backend.commons.services.CbirService;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
-import com.docsshare_web_backend.commons.utils.InMemoryMultipartFile;
+import com.docsshare_web_backend.commons.services.SemanticEmbeddingService; // 🔹 IMPORT MỚI
 import com.docsshare_web_backend.commons.utils.SlugUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -57,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class DocumentServiceImpl implements DocumentService {
+
         @Autowired
         private DocumentRepository documentRepository;
 
@@ -84,19 +86,25 @@ public class DocumentServiceImpl implements DocumentService {
         @Autowired
         private DocumentImageRepository documentImageRepository;
 
+        @Autowired
+        private ApplicationEventPublisher applicationEventPublisher;
+
+        @Autowired
+        private SemanticEmbeddingService semanticEmbeddingService; // 🔹 THÊM DÒNG NÀY
+
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
         }
 
         public static class DocumentMapper {
                 public static DocumentResponse toDocumentResponse(Document document, Long saveCount) {
-                        List<DocumentCoAuthorResponse> coAuthors = 
-                            document.getCoAuthors() != null
-                                ? document.getCoAuthors().stream()
-                                    .map(DocumentMapper::mapCoAuthorToResponse)
-                                    .collect(Collectors.toList())
-                                : Collections.emptyList();
-                    
+                        List<DocumentCoAuthorResponse> coAuthors =
+                                document.getCoAuthors() != null
+                                        ? document.getCoAuthors().stream()
+                                        .map(DocumentMapper::mapCoAuthorToResponse)
+                                        .collect(Collectors.toList())
+                                        : Collections.emptyList();
+
                         return DocumentResponse.builder()
                                 .id(document.getId())
                                 .title(document.getTitle())
@@ -107,9 +115,9 @@ public class DocumentServiceImpl implements DocumentService {
                                 .price(document.getPrice())
                                 .views(document.getViews() != null ? document.getViews() : 0L)
                                 .copyrightPath(document.getCopyrightPath())
-                                .moderationStatus(document.getModerationStatus() != null 
-                                                    ? document.getModerationStatus().toString() 
-                                                    : null)
+                                .moderationStatus(document.getModerationStatus() != null
+                                        ? document.getModerationStatus().toString()
+                                        : null)
                                 .rejectedReason(document.getRejectedReason())
                                 .isPublic(document.isPublic())
                                 .createdAt(document.getCreatedAt())
@@ -119,31 +127,31 @@ public class DocumentServiceImpl implements DocumentService {
                                 .coAuthors(coAuthors)
                                 .saveCount(saveCount != null ? saveCount : 0L)
                                 .build();
-                    }
-                    
-                    private static DocumentCoAuthorResponse mapCoAuthorToResponse(DocumentCoAuthor coAuthor) {
+                }
+
+                private static DocumentCoAuthorResponse mapCoAuthorToResponse(DocumentCoAuthor coAuthor) {
                         if (coAuthor.getUser() != null) {
-                            return DocumentCoAuthorResponse.builder()
-                                    .id(coAuthor.getId())
-                                    .userId(coAuthor.getUser().getId())
-                                    .name(coAuthor.getUser().getName())
-                                    .email(coAuthor.getUser().getEmail())
-                                    .build();
+                                return DocumentCoAuthorResponse.builder()
+                                        .id(coAuthor.getId())
+                                        .userId(coAuthor.getUser().getId())
+                                        .name(coAuthor.getUser().getName())
+                                        .email(coAuthor.getUser().getEmail())
+                                        .build();
                         } else {
-                            return DocumentCoAuthorResponse.builder()
-                                    .id(coAuthor.getId())
-                                    .name(coAuthor.getName())
-                                    .email(coAuthor.getEmail())
-                                    .build();
+                                return DocumentCoAuthorResponse.builder()
+                                        .id(coAuthor.getId())
+                                        .name(coAuthor.getName())
+                                        .email(coAuthor.getEmail())
+                                        .build();
                         }
-                    }
-                    
+                }
 
                 public static DocumentResponse toDocumentResponse(Document document) {
                         return toDocumentResponse(document, 0L);
                 }
-                    
+
         }
+
         private List<DocumentResponse> mapDocumentsToResponse(List<Document> documents) {
                 List<Long> documentIds = documents.stream().map(Document::getId).toList();
 
@@ -173,7 +181,7 @@ public class DocumentServiceImpl implements DocumentService {
                         .orElse(0L);
 
                 return DocumentMapper.toDocumentResponse(document, saveCount);
-        }    
+        }
 
         @Override
         @Transactional(readOnly = true)
@@ -187,7 +195,7 @@ public class DocumentServiceImpl implements DocumentService {
         @Transactional(readOnly = true)
         public DocumentResponse getDocument(long id) {
                 Document document = documentRepository.findById(id)
-                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
+                        .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
 
                 return mapDocumentToResponse(document);
         }
@@ -199,8 +207,8 @@ public class DocumentServiceImpl implements DocumentService {
                         throw new IllegalArgumentException("Slug cannot be null or empty");
                 }
                 Document document = documentRepository.findBySlug(slug)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "Document not found with slug: " + slug));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Document not found with slug: " + slug));
 
                 return mapDocumentToResponse(document);
         }
@@ -208,13 +216,13 @@ public class DocumentServiceImpl implements DocumentService {
         @Override
         @Transactional(readOnly = true)
         public Page<DocumentResponse> getDocumentsByUserId(DocumentFilterRequest request, long userId,
-                        Pageable pageable) {
+                                                           Pageable pageable) {
                 userRepository.findById(userId)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "User not found with id: " + userId));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "User not found with id: " + userId));
                 Specification<Document> spec = Specification
-                                .<Document>where((root, query, cb) -> cb.equal(root.get("author").get("id"), userId))
-                                .and(DocumentFilter.filterByRequest(request));
+                        .<Document>where((root, query, cb) -> cb.equal(root.get("author").get("id"), userId))
+                        .and(DocumentFilter.filterByRequest(request));
 
                 Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
                 return mapDocumentsToResponse(documents);
@@ -223,57 +231,57 @@ public class DocumentServiceImpl implements DocumentService {
         @Override
         @Transactional(readOnly = true)
         public Page<DocumentResponse> getDocumentsByAuthorOrCoAuthorId(DocumentFilterRequest request, long userId,
-                        Pageable pageable) {
+                                                                       Pageable pageable) {
                 userRepository.findById(userId)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "User not found with id: " + userId));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "User not found with id: " + userId));
 
                 try {
                         Specification<Document> spec = buildAuthorOrCoAuthorSpecification(userId)
                                 .and(DocumentFilter.filterByRequest(request));
-                
+
                         Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
                         return mapDocumentsToResponse(documents);
                 } catch (Exception e) {
-                log.error("Error fetching documents for user {}: {}", userId, e.getMessage());
-                throw new RuntimeException("Failed to fetch documents", e);
+                        log.error("Error fetching documents for user {}: {}", userId, e.getMessage());
+                        throw new RuntimeException("Failed to fetch documents", e);
                 }
         }
 
         private Specification<Document> buildAuthorOrCoAuthorSpecification(long userId) {
                 return (root, query, cb) -> {
-                    // Add distinct to prevent duplicate results
-                    query.distinct(true);
-                    
-                    // Create subquery for coauthor check to improve performance
-                    var subquery = query.subquery(Long.class);
-                    var coAuthorRoot = subquery.from(DocumentCoAuthor.class);
-                    subquery.select(coAuthorRoot.get("document").get("id"))
-                            .where(cb.and(
-                                cb.equal(coAuthorRoot.get("user").get("id"), userId),
-                                cb.isTrue(coAuthorRoot.get("isConfirmed"))
-                            ));
-            
-                    // Combine conditions using OR
-                    return cb.or(
-                        cb.equal(root.get("author").get("id"), userId),
-                        cb.in(root.get("id")).value(subquery)
-                    );
+                        // Add distinct to prevent duplicate results
+                        query.distinct(true);
+
+                        // Create subquery for coauthor check to improve performance
+                        var subquery = query.subquery(Long.class);
+                        var coAuthorRoot = subquery.from(DocumentCoAuthor.class);
+                        subquery.select(coAuthorRoot.get("document").get("id"))
+                                .where(cb.and(
+                                        cb.equal(coAuthorRoot.get("user").get("id"), userId),
+                                        cb.isTrue(coAuthorRoot.get("isConfirmed"))
+                                ));
+
+                        // Combine conditions using OR
+                        return cb.or(
+                                cb.equal(root.get("author").get("id"), userId),
+                                cb.in(root.get("id")).value(subquery)
+                        );
                 };
-            }
+        }
 
         @Override
         @Transactional(readOnly = true)
         public Page<DocumentResponse> getDocumentsByCategoryId(DocumentFilterRequest request, long categoryId,
-                        Pageable pageable) {
+                                                               Pageable pageable) {
                 categoryRepository.findById(categoryId)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "Category not found with id: " + categoryId));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Category not found with id: " + categoryId));
                 Specification<Document> spec = Specification
-                                .<Document>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
-                                                categoryId))
-                                .and(DocumentFilter.filterByRequest(request));
-                
+                        .<Document>where((root, query, cb) -> cb.equal(root.get("category").get("id"),
+                                categoryId))
+                        .and(DocumentFilter.filterByRequest(request));
+
                 Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
                 return mapDocumentsToResponse(documents);
         }
@@ -282,9 +290,9 @@ public class DocumentServiceImpl implements DocumentService {
         @Transactional(readOnly = true)
         public Page<DocumentResponse> getDocumentsNeedApproved(DocumentFilterRequest request, Pageable pageable) {
                 Specification<Document> spec = Specification
-                                .<Document>where((root, query, cb) -> cb.equal(root.get("moderationStatus"),
-                                                DocumentModerationStatus.PENDING))
-                                .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
+                        .<Document>where((root, query, cb) -> cb.equal(root.get("moderationStatus"),
+                                DocumentModerationStatus.PENDING))
+                        .and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
 
                 Page<Document> documents = documentRepository.findAll(spec, getPageable(pageable));
                 return mapDocumentsToResponse(documents);
@@ -294,13 +302,13 @@ public class DocumentServiceImpl implements DocumentService {
         @Transactional
         public DocumentResponse createDocument(DocumentRequest request) {
                 var author = userRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "User not found with id: " + request.getUserId()));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "User not found with id: " + request.getUserId()));
 
                 var category = categoryRepository.findById(request.getCategoryId())
-                                .orElseThrow(
-                                                () -> new EntityNotFoundException("Category not found with id: "
-                                                                + request.getCategoryId()));
+                        .orElseThrow(
+                                () -> new EntityNotFoundException("Category not found with id: "
+                                        + request.getCategoryId()));
 
                 String originalFilename = request.getFile().getOriginalFilename();
                 String fileExtension = null;
@@ -335,7 +343,7 @@ public class DocumentServiceImpl implements DocumentService {
                 DocumentModerationStatus moderationStatus = switch (author.getUserType()) {
                         case ADMIN, STAFF -> DocumentModerationStatus.APPROVED;
                         default -> DocumentModerationStatus.PENDING;
-                    };
+                };
 
                 Document document = Document.builder()
                         .title(request.getTitle())
@@ -355,12 +363,21 @@ public class DocumentServiceImpl implements DocumentService {
                 Document savedDocument = documentRepository.save(document);
                 savedDocument.setSlug(SlugUtils.generateSlug(savedDocument.getTitle(), savedDocument.getId()));
                 savedDocument = documentRepository.save(savedDocument);
+
                 if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
                         for (var coAuthorRequest : request.getCoAuthor()) {
-                            documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);
+                                documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);
                         }
-                    }
-                
+                }
+
+                // 🔹 TRIGGER SEMANTIC EMBEDDING NGAY SAU KHI TẠO DOCUMENT
+                try {
+                        semanticEmbeddingService.triggerEmbedding(savedDocument.getId());
+                        log.info("Triggered semantic embedding for document {}", savedDocument.getId());
+                } catch (Exception e) {
+                        log.error("Failed to trigger semantic embedding for document {}", savedDocument.getId(), e);
+                }
+
                 List<CbirService.ImageFeatureResult> imageResults =
                         documentImageService.extractImagesAndFeatures(request.getFile());
 
@@ -370,8 +387,8 @@ public class DocumentServiceImpl implements DocumentService {
                                 String featuresJson = new ObjectMapper().writeValueAsString(img.getFeatures());
                                 DocumentImage docImage = DocumentImage.builder()
                                         .document(savedDocument)
-                                        .imagePath(img.getUrl())       
-                                        .featureVector(featuresJson)  
+                                        .imagePath(img.getUrl())
+                                        .featureVector(featuresJson)
                                         .build();
 
                                 DocumentImage savedDocImage = documentImageRepository.save(docImage);
@@ -387,6 +404,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 e.printStackTrace();
                         }
                 }
+                applicationEventPublisher.publishEvent(new DocumentCreatedEvent(this, savedDocument.getId()));
                 return DocumentMapper.toDocumentResponse(savedDocument);
         }
 
@@ -394,19 +412,19 @@ public class DocumentServiceImpl implements DocumentService {
         @Transactional
         public DocumentResponse updateDocument(long documentId, DocumentUpdateRequest request) {
                 Document existingDocument = documentRepository.findById(documentId)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "Document not found with id: " + documentId));
-                
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Document not found with id: " + documentId));
+
                 var author = userRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "User not found with id: " + request.getUserId()));
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "User not found with id: " + request.getUserId()));
                 var category = categoryRepository.findById(request.getCategoryId())
-                                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "
-                                                + request.getCategoryId()));
+                        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: "
+                                + request.getCategoryId()));
 
                 if ((existingDocument.getModerationStatus() == DocumentModerationStatus.APPROVED ||
-                                existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED)
-                   && (author.getUserType() == UserType.USER)) {
+                        existingDocument.getModerationStatus() == DocumentModerationStatus.REJECTED)
+                        && (author.getUserType() == UserType.USER)) {
                         existingDocument.setModerationStatus(DocumentModerationStatus.PENDING);
                 }
 
@@ -427,7 +445,7 @@ public class DocumentServiceImpl implements DocumentService {
         public DocumentResponse updateDocumentStatus(long id, DocumentUpdateStatusRequest request) {
                 Document existingDocument = documentRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-                
+
                 User sender = userRepository.findById(request.getSenderId())
                         .orElseThrow(() -> new EntityNotFoundException("Sender not found"));
 
@@ -435,7 +453,7 @@ public class DocumentServiceImpl implements DocumentService {
                 existingDocument.setModerationStatus(status);
 
                 if (status == DocumentModerationStatus.APPROVED) {
-                        existingDocument.setRejectedReason(null); // clear nếu từng bị từ chối
+                        existingDocument.setRejectedReason(null);
                         Notification notification = Notification.builder()
                                 .content("Document \"" + existingDocument.getTitle() + "\" has been approved.")
                                 .createdAt(LocalDateTime.now())
@@ -473,15 +491,15 @@ public class DocumentServiceImpl implements DocumentService {
         public void deleteDocument(Long id) {
                 Document document = documentRepository.findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
-            
+
                 String filePath = document.getFilePath();
                 documentRepository.delete(document);
-                
+
                 boolean stillUsed = documentRepository.existsByFilePath(filePath);
                 if (!stillUsed) {
                         try {
                                 String fileId = googleDriveService.extractFileIdFromUrl(filePath);
-                                googleDriveService.deleteFile(fileId); // xóa trên Drive
+                                googleDriveService.deleteFile(fileId);
                         } catch (Exception e) {
                                 System.err.println("Failed to delete file from Google Drive: " + e.getMessage());
                         }
@@ -492,7 +510,7 @@ public class DocumentServiceImpl implements DocumentService {
         @Transactional
         public DocumentResponse incrementView(long documentId){
                 Document document = documentRepository.findById(documentId)
-                                .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + documentId));
+                        .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + documentId));
                 if (document.getViews() == null) {
                         document.setViews(0L);
                 }
@@ -506,12 +524,12 @@ public class DocumentServiceImpl implements DocumentService {
                 List<Object[]> results = documentRepository.findTopDocumentsBetweenDates(fromDate, toDate, top);
 
                 return results.stream()
-                                .map((Object[] row) -> TopDocumentReportResponse.builder()
+                        .map((Object[] row) -> TopDocumentReportResponse.builder()
                                 .id(((Number) row[0]).longValue())
                                 .title((String) row[1])
-                                .description((String) row[2]) 
+                                .description((String) row[2])
                                 .fileType((String) row[3])
-                                .slug((String) row[4]) 
+                                .slug((String) row[4])
                                 .price(row[5] != null ? ((Number) row[5]).doubleValue() : null)
                                 .createdAt(row[6] != null ? ((Timestamp) row[6]).toLocalDateTime() : null)
                                 .authorName((String) row[7])

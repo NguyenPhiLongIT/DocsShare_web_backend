@@ -45,6 +45,10 @@ public class Document {
     private String rejectedReason;
     @Column(nullable = false)
     private boolean isPublic;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean semanticEmbedded = false;
+    private LocalDateTime semanticEmbeddedAt;
     @CreatedDate
     private LocalDateTime createdAt;
 
@@ -58,4 +62,11 @@ public class Document {
 
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DocumentCoAuthor> coAuthors;
+
+    @PrePersist
+    private void onCreate() {
+        if (!semanticEmbedded) {
+            semanticEmbedded = false;
+        }
+    }
 }
