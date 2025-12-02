@@ -21,6 +21,7 @@ except Exception as e:
     predict_texts = None  # tránh NameError
 
 from summary.service import summarize_text
+from summary.extract import extract_text
 from cbir.extract_img import extract_images_from_pdf
 from cbir.export_features import load_features_from_db
 from cbir.service import (
@@ -173,6 +174,23 @@ def summarize_api():
 
     return jsonify({"description": summary})
 
+
+@app.route("/extract-text", methods=["POST"])
+def extract_text_api():
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
+    ext = os.path.splitext(file.filename)[-1] or ".pdf"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+        file.save(tmp.name)
+        text = extract_text(tmp.name)
+
+    return jsonify({"text": text})
 
 @app.route("/extract-images", methods=["POST"])
 def extract_images_api():
