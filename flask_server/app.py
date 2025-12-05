@@ -20,7 +20,7 @@ except Exception as e:
     predict_texts = None  # tránh NameError
 
 from summary.service import summarize_text
-from summary.extract import extract_text
+from summary.extract import extract_n_sentences
 from cbir.extract_img import extract_images_from_pdf
 from cbir.export_features import load_features_from_db
 from cbir.service import (
@@ -206,7 +206,7 @@ def extract_text_api():
         tmp_path = tmp.name
 
     try:
-        text = extract_text(tmp_path)
+        text = extract_n_sentences(tmp_path)
     except Exception as e:
         print("[extract-text][ERROR]", e)
         return jsonify({"error": str(e)}), 500
@@ -331,4 +331,4 @@ def search_image_api():
 
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=True)

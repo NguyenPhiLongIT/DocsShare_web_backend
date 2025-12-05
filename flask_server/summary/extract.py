@@ -1,5 +1,6 @@
 import re
 from PyPDF2 import PdfReader
+import fitz
 from docx import Document
 
 EXCLUDE_SECTIONS = [
@@ -91,3 +92,40 @@ def extract_text(file_path):
         raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
     
     return filter_excluded_blocks(raw_text)
+
+
+def extract_first_lines_pdf(file_path, n=5):
+    lines = []
+
+    with fitz.open(file_path) as doc:
+        for page in doc:
+            text = page.get_text("text")
+            if text:
+                for line in text.split("\n"):
+                    line = line.strip()
+                    if line:
+                        lines.append(line)
+                        if len(lines) >= n:
+                            return " ".join(lines)
+    return " ".join(lines)
+
+def extract_first_lines_docx(file_path, n=5):
+    lines = []
+    doc = Document(file_path)
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if text:
+            lines.append(text)
+            if len(lines) >= n:
+                return " ".join(lines)
+
+    return " ".join(lines)
+
+def extract_n_sentences(file_path):
+    if file_path.lower().endswith(".pdf"):
+        return extract_first_lines_pdf(file_path, 10)
+    elif file_path.lower().endswith(".docx"):
+        return extract_first_lines_docx(file_path, 10)
+    else:
+        raise ValueError("Unsupported file type")
