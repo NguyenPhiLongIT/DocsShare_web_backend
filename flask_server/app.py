@@ -125,7 +125,6 @@ def run_vi(text: str):
     }
 
 
-
 @app.route("/predict", methods=["POST"])
 def predict_toxic_api():
     data = request.get_json(force=True) or {}
@@ -153,7 +152,6 @@ def predict_toxic_api():
     except Exception as e:
         print("Error in /predict:", e)
         return jsonify({"error": "internal_error"}), 500
-
 
 
 @app.route("/summarize", methods=["POST"])
@@ -195,12 +193,11 @@ def extract_text_api():
         elif "word" in mimetype or "officedocument.wordprocessingml.document" in mimetype:
             ext = ".docx"
         else:
-            # nếu vẫn không đoán được thì giả định PDF (tài liệu của bạn chủ yếu là pdf)
+            # nếu vẫn không đoán được thì giả định PDF
             ext = ".pdf"
 
     print(f"[extract-text] filename={filename!r}, mimetype={mimetype!r}, use ext={ext!r}")
 
-    # Tạo file tạm có đúng đuôi
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
         file.save(tmp.name)
         tmp_path = tmp.name
@@ -217,7 +214,6 @@ def extract_text_api():
             pass
 
     return jsonify({"text": text})
-
 
 
 @app.route("/extract-images", methods=["POST"])
@@ -265,6 +261,7 @@ def extract_images_api():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
 
 db_features = load_features_from_db()
 print(f"Loaded {len(db_features)} image features into memory.")
@@ -331,4 +328,4 @@ def search_image_api():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,340 +1,311 @@
-from flask import Flask, request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint
 from urllib.parse import unquote
-import pickle
 import os
-import sys
-from collections import defaultdict
-
+import pickle
 import numpy as np
-
-try:
-    import numpy._core.numeric as _  # noqa: F401
-except ImportError:
-    pass
-
 import faiss
 from sentence_transformers import SentenceTransformer
+from collections import defaultdict
+from typing import Optional
+
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Lên một cấp từ semantic/ để đến flask_server/
 FLASK_SERVER_DIR = os.path.dirname(BASE_DIR)
 
-# File semantic_search_model.pkl nằm trong thư mục models
 MODEL_PKL_PATH = os.path.join(FLASK_SERVER_DIR, "models", "semantic_search_model.pkl")
-TOPIC_VECTORS_CACHE_PATH = os.path.join(FLASK_SERVER_DIR, "models", "topic_vectors_cache.pkl")
 
-print("Loading semantic search model from:", MODEL_PKL_PATH)
-
-
-def _ensure_numpy_modules():
-    try:
-        import numpy._core
-        import numpy._core.multiarray
-        import numpy._core.numeric
-        import numpy._core.umath
-    except (ImportError, AttributeError):
-        # Nếu không có _core (numpy cũ), bỏ qua
-        pass
+print("🔵 [semantic] Loading state from:", MODEL_PKL_PATH)
 
 
-_state = None
-_last_model_mtime = None
+def load_embedding_model(model_name: str):
+    print(f"🔵 [semantic] Loading embedding model: {model_name}")
+    model = SentenceTransformer(model_name)
+    print("   ✅ Model loaded.")
+    return model
 
-config = {}
-df_kw = None
-kw_index = None
+state = {
+    "config": None,
+    "df_kw": None,
+    "kw_index": None,
+    "doc_vecs": None,
+    "doc_ids_arr": None,
+    "cat_ids_arr": None,
+    "doc_full_vecs": None,
+    "doc_full_ids": None,
+    "doc_meta": None,
+    "doc_full_map": {},
+}
 
-doc_vecs = None
-doc_ids_arr = None
-cat_ids_arr = None
-
-doc_full_vecs = None
-doc_full_ids = None
-doc_meta = None
-doc_full_map = {}
-
-# Topic cache trong RAM
-_topic_vectors = None
-_topic_names = None
-_topic_index = None
-_topic_ids_list = None
-
-# Lazy loading SentenceTransformer
-_model = None
-EMBEDDING_MODEL_NAME = None
+embedding_model = None  # SentenceTransformer instance
 
 
-def load_semantic_state_if_needed():
-    global _state, _last_model_mtime
-    global config, df_kw, kw_index
-    global doc_vecs, doc_ids_arr, cat_ids_arr
-    global doc_full_vecs, doc_full_ids, doc_meta, doc_full_map
-    global _topic_vectors, _topic_names, _topic_index, _topic_ids_list
-    global EMBEDDING_MODEL_NAME
+def load_state_once():
+    global state, embedding_model
 
     if not os.path.exists(MODEL_PKL_PATH):
-        raise FileNotFoundError(f"semantic_search_model.pkl not found at {MODEL_PKL_PATH}")
+        raise FileNotFoundError(f"❌ semantic_search_model.pkl not found: {MODEL_PKL_PATH}")
 
-    mtime = os.path.getmtime(MODEL_PKL_PATH)
+    print("🔵 [semantic] Loading semantic_search_model.pkl (one-time)...")
 
-    if _state is not None and _last_model_mtime is not None and mtime <= _last_model_mtime:
-        # Không có thay đổi mới
-        return
+    with open(MODEL_PKL_PATH, "rb") as f:
+        raw = pickle.load(f)
+    # Giữ lại toàn bộ raw state gốc
+    state.update(raw)
 
-    # Có thay đổi / lần đầu load
-    print("\n[semantic] Reloading semantic_search_model.pkl ...")
-    print(f"          mtime = {mtime}, last_mtime = {_last_model_mtime}")
+    # Config
+    state["config"] = raw["config"]
+    embed_name = state["config"]["embedding_model_name"]
 
-    _ensure_numpy_modules()
-
-    try:
-        with open(MODEL_PKL_PATH, "rb") as f:
-            state = pickle.load(f)
-    except (ModuleNotFoundError, AttributeError) as e:
-        print(f"❌ Error loading model: {e}")
-        print("💡 This is likely due to numpy version incompatibility.")
-        print(f"   Current numpy version: {np.__version__}")
-        raise RuntimeError(
-            f"Cannot load model due to numpy compatibility issue: {e}\n"
-            "Please try reinstalling numpy or re-pickle the model."
-        ) from e
-
-    _state = state
-    _last_model_mtime = mtime
-
-    # Khôi phục cấu hình & data
-    config = state["config"]
-    EMBEDDING_MODEL_NAME = config["embedding_model_name"]
+    # Load embedding model (only one time)
+    if embedding_model is None:
+        embedding_model = load_embedding_model(embed_name)
 
     # Keywords dataset
-    df_kw_local = state["df_kw"]
-    df_kw_local = df_kw_local  # nếu cần clone, có thể thêm .copy()
-    # Keyword index
-    kw_index_bytes = state["kw_index_bytes"]
-    kw_index_local = faiss.deserialize_index(kw_index_bytes)
+    state["df_kw"] = raw["df_kw"]
 
-    # Doc vectors
-    doc_vecs_local = state["doc_vecs"].astype("float32")
-    doc_ids_arr_local = state["doc_ids_arr"].astype("int64")
-    cat_ids_arr_local = state["cat_ids_arr"].astype("int64")
+    # Lưu luôn kw_index_bytes để dùng khi ghi file
+    state["kw_index_bytes"] = raw.get("kw_index_bytes")
 
-    # Full doc vectors
-    doc_full_vecs_local = state["doc_full_vecs"].astype("float32")
-    doc_full_ids_local = state["doc_full_ids"].astype("int64")
+    # Keyword FAISS index (dùng bytes để build index trong RAM)
+    state["kw_index"] = faiss.deserialize_index(raw["kw_index_bytes"])
 
-    doc_meta_local = state["doc_meta"]
+    # n-gram vectors
+    state["doc_vecs"] = raw["doc_vecs"].astype("float32")
+    state["doc_ids_arr"] = raw["doc_ids_arr"].astype("int64")
+    state["cat_ids_arr"] = raw["cat_ids_arr"].astype("int64")
 
-    doc_full_map_local = {
-        int(doc_full_ids_local[i]): doc_full_vecs_local[i]
-        for i in range(len(doc_full_ids_local))
+    # Full document vectors
+    state["doc_full_vecs"] = raw["doc_full_vecs"].astype("float32")
+    state["doc_full_ids"] = raw["doc_full_ids"].astype("int64")
+
+    # Metadata
+    state["doc_meta"] = raw["doc_meta"]
+
+    # Map id → vector
+    state["doc_full_map"] = {
+        int(doc_id): state["doc_full_vecs"][i]
+        for i, doc_id in enumerate(state["doc_full_ids"])
     }
 
-    # Gán về globals
-    global df_kw, kw_index
-    df_kw = df_kw_local
-    kw_index = kw_index_local
+    print("   ✅ Loaded state:")
+    print("      - #keywords     :", len(state["df_kw"]))
+    print("      - #chunks       :", state["doc_vecs"].shape[0])
+    print("      - #docs(full)   :", len(state["doc_full_ids"]))
+    print("      - embedding model:", embed_name)
 
-    global doc_summary_vecs
-    doc_summary_vecs = {}
-
-    global doc_full_vecs, doc_full_ids, doc_meta, doc_vecs, doc_ids_arr, cat_ids_arr, doc_full_map
-    doc_full_vecs = doc_full_vecs_local
-    doc_full_ids = doc_full_ids_local
-    doc_meta = doc_meta_local
-
-    doc_vecs = doc_vecs_local
-    doc_ids_arr = doc_ids_arr_local
-    cat_ids_arr = cat_ids_arr_local
-
-    doc_full_map = doc_full_map_local
-
-    # Tạo doc_summary_vecs (check norm nếu muốn)
-    for i in range(len(doc_full_ids_local)):
-        doc_id = int(doc_full_ids_local[i])
-        doc_vec = doc_full_vecs_local[i].astype("float32")
-        vec_norm = np.linalg.norm(doc_vec)
-        if abs(vec_norm - 1.0) > 0.01:
-            print(f"⚠️  Warning: Document {doc_id} vector norm = {vec_norm:.4f} (expected ~1.0)")
-        doc_summary_vecs[doc_id] = doc_vec
-
-    # Khi state thay đổi, xoá topic cache trong RAM (file cache đã được script embed xóa)
-    _topic_vectors = None
-    _topic_names = None
-    _topic_index = None
-    _topic_ids_list = None
-
-    print("[semantic] Model loaded:")
-    print("   #keywords           :", len(df_kw))
-    print("   #chunks (n-grams)   :", doc_vecs.shape[0])
-    print("   #docs (full)        :", len(doc_full_ids))
-    print("   embedding_model_name:", EMBEDDING_MODEL_NAME)
-
-
-def get_model():
-    """Lazy load SentenceTransformer model - chỉ load khi cần thiết."""
-    global _model, EMBEDDING_MODEL_NAME
-    if EMBEDDING_MODEL_NAME is None:
-        # Đảm bảo state đã được load để biết EMBEDDING_MODEL_NAME
-        load_semantic_state_if_needed()
-    if _model is None:
-        print("🔄 Đang load embedding model (lần đầu tiên)...")
-        _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-        print("✅ Model đã được load thành công")
-    return _model
+# Gọi load 1 lần khi import file
+load_state_once()
 
 
 def embed_query(texts):
-    """Embed query text - model sẽ được load tự động nếu chưa có."""
-    model = get_model()
+    """Embed query: prefix 'query:'"""
+    if isinstance(texts, str):
+        texts = [texts]
+    model = embedding_model
     texts = [f"query: {t}" for t in texts]
     return model.encode(texts, normalize_embeddings=True).astype("float32")
 
-
 def embed_passage(texts):
-    """Embed passage text - model sẽ được load tự động nếu chưa có."""
-    model = get_model()
+    """Embed passage: prefix 'passage:'"""
+    if isinstance(texts, str):
+        texts = [texts]
+    model = embedding_model
     texts = [f"passage: {t}" for t in texts]
     return model.encode(texts, normalize_embeddings=True).astype("float32")
 
 
-# ====== BUILD TOPIC VECTORS (có cache, phụ thuộc df_kw) ======
-def build_topic_vectors():
-    """Lazy build topic vectors - chỉ build khi cần thiết, cache vào file."""
-    global _topic_vectors, _topic_names, _topic_index, _topic_ids_list
+config = state["config"]
+df_kw = state["df_kw"]
+kw_index = state["kw_index"]
 
-    # Đảm bảo state & df_kw đã load
-    load_semantic_state_if_needed()
+doc_vecs = state["doc_vecs"]
+doc_ids_arr = state["doc_ids_arr"]
+cat_ids_arr = state["cat_ids_arr"]
 
-    if _topic_vectors is not None:
-        return _topic_vectors, _topic_names, _topic_index, _topic_ids_list
+doc_full_vecs = state["doc_full_vecs"]
+doc_full_ids = state["doc_full_ids"]
+doc_meta = state["doc_meta"]
+doc_full_map = state["doc_full_map"]
 
-    # Thử load từ cache trước
-    if os.path.exists(TOPIC_VECTORS_CACHE_PATH):
-        try:
-            print("📂 Đang load topic vectors từ cache...")
-            with open(TOPIC_VECTORS_CACHE_PATH, "rb") as f:
-                cache_data = pickle.load(f)
-                _topic_vectors = cache_data["topic_vectors"]
-                _topic_names = cache_data["topic_names"]
-                topic_ids_list = cache_data["topic_ids_list"]
 
-                # Rebuild FAISS index từ cached vectors
-                topic_vecs_array = np.array(
-                    [_topic_vectors[tid] for tid in topic_ids_list]
-                ).astype("float32")
-                _topic_index = faiss.IndexFlatIP(topic_vecs_array.shape[1])
-                _topic_index.add(topic_vecs_array)
-                _topic_ids_list = topic_ids_list
+def chunkify(text: str, max_chars: int = 600):
 
-                print(f"   ✅ Đã load {len(_topic_vectors)} topic vectors từ cache")
-                return _topic_vectors, _topic_names, _topic_index, _topic_ids_list
-        except Exception as e:
-            print(f"   ⚠️  Không thể load cache: {e}, sẽ build lại...")
+    import re
 
-    # Nếu không có cache, build mới
-    print("🔄 Đang build topic vectors từ keywords (lần đầu tiên)...")
-    print("   ⏳ Quá trình này có thể mất vài phút...")
+    if not text:
+        return []
 
-    topic_keyword_dict = defaultdict(list)  # {topic_id: [(keyword, vector), ...]}
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+    if not sentences:
+        return [text.strip()]
 
-    # Batch embed keywords để tăng tốc
-    all_keywords = []
-    keyword_meta = []
+    chunks = []
+    current = []
+    current_len = 0
 
-    for idx, row in df_kw.iterrows():
-        topic_id = int(row["category_id"])
-        keyword = str(row["keyword"])
-        all_keywords.append(keyword)
-        keyword_meta.append(
-            {
-                "topic_id": topic_id,
-                "category_name": str(row.get("category_name", "")),
-            }
-        )
+    for sentence in sentences:
+        sentence_len = len(sentence) + 1
+        if current and current_len + sentence_len > max_chars:
+            chunks.append(" ".join(current).strip())
+            current = [sentence]
+            current_len = len(sentence)
+        else:
+            current.append(sentence)
+            current_len += sentence_len
 
-    print(f"   📝 Đang embed {len(all_keywords)} keywords...")
-    all_vectors = embed_passage(all_keywords)
+    if current:
+        chunks.append(" ".join(current).strip())
 
-    for keyword, vector, meta in zip(all_keywords, all_vectors, keyword_meta):
-        topic_id = meta["topic_id"]
-        topic_keyword_dict[topic_id].append(
-            {
-                "keyword": keyword,
-                "vector": vector,
-                "category_name": meta["category_name"],
-            }
-        )
+    return chunks
 
-    print(f"   ✅ Đã embed xong, đang tính topic vectors...")
 
-    topic_vectors = {}
-    topic_names = {}
+def append_document_to_state(
+    doc_id: int,
+    title: Optional[str],
+    summary: str,
+    description: Optional[str],
+    category_id: Optional[int],
+):
 
-    for topic_id, keywords in topic_keyword_dict.items():
-        if not keywords:
-            continue
 
-        topic_names[topic_id] = keywords[0]["category_name"]
+    global state
+    global doc_vecs, doc_ids_arr, cat_ids_arr
+    global doc_full_vecs, doc_full_ids, doc_full_map, doc_meta
 
-        kw_vectors = []
-        for kw in keywords:
-            kw_vec = kw["vector"].astype("float32")
-            kw_vectors.append(kw_vec)
+    # Chuẩn hóa input
+    cat_value = int(category_id) if category_id is not None else -1
+    description = description or summary or ""
+    summary = summary or description
 
-        kw_vectors_array = np.array(kw_vectors)
-        topic_vector = np.mean(kw_vectors_array, axis=0).astype("float32")
+    # 1) Tạo chunks từ description
+    chunks = chunkify(description)
+    if not chunks:
+        chunks = [summary]
 
-        vec_norm = np.linalg.norm(topic_vector)
-        if vec_norm > 0:
-            topic_vector = topic_vector / vec_norm
+    # 2) Embed summary & chunks (passage)
+    summary_vec = embed_passage([summary])[0]  # shape (dim,)
+    chunk_vecs = embed_passage(chunks)         # shape (n_chunk, dim)
 
-        topic_vectors[topic_id] = topic_vector.astype("float32")
+    # 3) Xác định dimension
+    if doc_full_vecs is not None and doc_full_vecs.size > 0:
+        dim = doc_full_vecs.shape[1]
+    else:
+        dim = summary_vec.shape[0]
 
-    print(f"   ✅ Đã build {len(topic_vectors)} topic vectors")
+    summary_vec = summary_vec.astype("float32").reshape(1, dim)
+    chunk_vecs = chunk_vecs.astype("float32").reshape(-1, dim)
 
-    topic_ids_list = list(topic_vectors.keys())
-    topic_vecs_array = np.array(
-        [topic_vectors[tid] for tid in topic_ids_list]
-    ).astype("float32")
-    topic_index = faiss.IndexFlatIP(topic_vecs_array.shape[1])
-    topic_index.add(topic_vecs_array)
+    # 4) Append vào doc_full_vecs + doc_full_ids
+    if doc_full_vecs is None or doc_full_vecs.size == 0:
+        doc_full_vecs = summary_vec
+        doc_full_ids = np.array([doc_id], dtype="int64")
+    else:
+        doc_full_vecs = np.vstack([doc_full_vecs, summary_vec])
+        doc_full_ids = np.append(doc_full_ids, [doc_id]).astype("int64")
 
-    # Cache vào file
+    # 5) Append vào doc_vecs + doc_ids_arr + cat_ids_arr
+    if chunk_vecs.size > 0:
+        if doc_vecs is None or doc_vecs.size == 0:
+            doc_vecs = chunk_vecs
+            doc_ids_arr = np.full(len(chunk_vecs), doc_id, dtype="int64")
+            cat_ids_arr = np.full(len(chunk_vecs), cat_value, dtype="int64")
+        else:
+            doc_vecs = np.vstack([doc_vecs, chunk_vecs])
+            doc_ids_arr = np.append(
+                doc_ids_arr,
+                np.full(len(chunk_vecs), doc_id, dtype="int64"),
+            )
+            cat_ids_arr = np.append(
+                cat_ids_arr,
+                np.full(len(chunk_vecs), cat_value, dtype="int64"),
+            )
+
+    # 6) Cập nhật doc_full_map
+    doc_full_map[int(doc_id)] = summary_vec[0]
+
+    # 7) Cập nhật doc_meta
+    if doc_meta is None:
+        doc_meta = {}
+
+    meta_entry = {
+        "doc_id": int(doc_id),
+        "title": title,
+        "summary": summary,
+        "description": description,
+    }
+    key = str(cat_value)
+    doc_meta.setdefault(key, []).append(meta_entry)
+
+    # 8) Ghi ngược lại vào state dict
+    state["doc_vecs"] = doc_vecs
+    state["doc_ids_arr"] = doc_ids_arr
+    state["cat_ids_arr"] = cat_ids_arr
+    state["doc_full_vecs"] = doc_full_vecs
+    state["doc_full_ids"] = doc_full_ids
+    state["doc_full_map"] = doc_full_map
+    state["doc_meta"] = doc_meta
+
+    # 9) Chuẩn bị state để ghi lại file .pkl (backup)
+    save_state = dict(state)
+
+    # Không ghi FAISS index object trực tiếp
+    if "kw_index" in save_state:
+        save_state.pop("kw_index")
+
+
+    if "kw_index_bytes" not in save_state:
+        raise RuntimeError("kw_index_bytes missing in state – cannot persist semantic model safely.")
+
+    with open(MODEL_PKL_PATH, "wb") as f:
+        pickle.dump(save_state, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print(
+        f"✅ [semantic] Appended doc {doc_id} (cat={cat_value}) to state: "
+        f"doc_full_vecs={doc_full_vecs.shape}, doc_vecs={doc_vecs.shape}"
+    )
+
+
+semantic_bp = Blueprint("semantic", __name__)
+
+
+@semantic_bp.route("/semantic/embed-doc-internal", methods=["POST"])
+def embed_doc_internal_endpoint():
+
     try:
-        print("💾 Đang lưu topic vectors vào cache...")
-        cache_data = {
-            "topic_vectors": topic_vectors,
-            "topic_names": topic_names,
-            "topic_ids_list": topic_ids_list,
-        }
-        with open(TOPIC_VECTORS_CACHE_PATH, "wb") as f:
-            pickle.dump(cache_data, f)
-        print("   ✅ Đã lưu cache thành công")
+        data = request.get_json(force=True) or {}
+
+        doc_id = int(data["docId"])
+        title = data.get("title")
+        summary = data.get("summary") or data.get("description") or data.get("title") or ""
+        description = data.get("description") or summary
+        category_id = data.get("categoryId")
+
+        print(f"🔵 [semantic] Embedding new document: id={doc_id}, cat={category_id}")
+
+        append_document_to_state(
+            doc_id=doc_id,
+            title=title,
+            summary=summary,
+            description=description,
+            category_id=category_id,
+        )
+
+        return jsonify({"message": f"Document {doc_id} embedded successfully."})
     except Exception as e:
-        print(f"   ⚠️  Không thể lưu cache: {e}")
-
-    _topic_vectors = topic_vectors
-    _topic_names = topic_names
-    _topic_index = topic_index
-    _topic_ids_list = topic_ids_list
-
-    return topic_vectors, topic_names, topic_index, topic_ids_list
+        import traceback
+        print("❌ [semantic] Error in /semantic/embed-doc-internal:", repr(e))
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
-# ====== SEARCH CORE (giữ logic như notebook) ======
 def search_core(
     query: str,
     top_k_topics: int = None,          # sẽ dùng làm top_k_keywords
     top_k_docs_per_topic: int = None,  # số doc trả về
     sim_threshold: float = None,
 ):
-    """
-    Smart Search V2 – bám theo logic search_once() trong notebook.
-    """
 
-    # Đảm bảo state mới nhất đã được load (nếu .pkl có thay đổi)
-    load_semantic_state_if_needed()
 
     if not query:
         return {"query": query, "results": [], "error": "EMPTY_QUERY"}
@@ -368,7 +339,7 @@ def search_core(
     print(f"   w_full = {w_full}, w_local = {w_local}")
 
     # 1) Embed query
-    q_vec = embed_query([query_clean]).astype("float32")  # (1, dim)
+    q_vec = embed_query([query_clean])  # (1, dim)
     print(
         f"   ✅ Query vector shape: {q_vec.shape}, norm={np.linalg.norm(q_vec):.4f}"
     )
@@ -407,7 +378,7 @@ def search_core(
             ],
         }
 
-    vecs_cat = doc_vecs[mask].astype("float32")  # (N_chunk, dim)
+    vecs_cat = doc_vecs[mask].astype("float32")      # (N_chunk, dim)
     doc_ids_cat = doc_ids_arr[mask].astype("int64")  # (N_chunk,)
     print(f"   📄 Số chunk (n-gram) trong category {cat_id}: {vecs_cat.shape[0]}")
 
@@ -501,32 +472,6 @@ def search_core(
     return result
 
 
-# ====== FLASK API ======
-app = Flask(__name__)
-
-# Route cũ dạng /semantic-search (nếu đang dùng)
-@app.route("/semantic-search", methods=["POST"])
-def semantic_search():
-    data = request.get_json(force=True) or {}
-    query = data.get("query", "")
-    top_k_topics = data.get("top_k_topics")
-    top_k_docs_per_topic = data.get("top_k_docs_per_topic")
-    sim_threshold = data.get("sim_threshold")
-
-    res = search_core(
-        query=query,
-        top_k_topics=top_k_topics,
-        top_k_docs_per_topic=top_k_docs_per_topic,
-        sim_threshold=sim_threshold,
-    )
-
-    return jsonify(res)
-
-
-# Blueprint cho /semantic/search và /semantic/embed-doc
-semantic_bp = Blueprint("semantic", __name__)
-
-
 @semantic_bp.route("/semantic/search", methods=["GET", "POST"])
 def semantic_search_endpoint():
     if request.method == "GET":
@@ -584,21 +529,20 @@ def semantic_search_endpoint():
         print(f"✅ Search completed: {len(res.get('results', []))} topics found")
         return jsonify(res)
     except Exception as e:
-        print(f"❌ Error in semantic search: {e}")
         import traceback
-
+        print(f"❌ Error in semantic search: {e}")
         traceback.print_exc()
         return (
             jsonify({"query": query, "error": str(e), "results": []}),
             500,
         )
 
-
 @semantic_bp.route("/semantic/embed-doc", methods=["POST"])
 def embed_doc_endpoint():
     """
-    Endpoint cho script update_semantic_model.py gọi sang.
-    Dùng chung model + embed_passage, không load model mới.
+    Endpoint cũ cho script update_semantic_model.py gọi sang.
+    Vẫn giữ nguyên behavior: trả về vector summary + chunk,
+    nhưng KHÔNG tự append vào state (append dùng /semantic/embed-doc-internal).
     """
     data = request.get_json(force=True) or {}
 
@@ -613,7 +557,6 @@ def embed_doc_endpoint():
     chunks = [str(c) for c in chunks]
 
     try:
-        # Dùng chung model + hàm embed_passage
         summary_vec = None
         if summary.strip():
             summary_vec = embed_passage([summary])[0].tolist()
@@ -627,16 +570,15 @@ def embed_doc_endpoint():
             "chunk_vecs": chunk_vecs,
         })
     except Exception as e:
-        print(f"❌ Error in /semantic/embed-doc: {e}")
         import traceback
+        print(f"❌ Error in /semantic/embed-doc: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
-app.register_blueprint(semantic_bp)
-
-
 if __name__ == "__main__":
-    # Đảm bảo lần đầu chạy cũng load state (để in log model)
-    load_semantic_state_if_needed()
+    from flask import Flask
+    app = Flask(__name__)
+    app.register_blueprint(semantic_bp)
+    # Đảm bảo state đã load khi start (đã gọi load_state_once ở đầu file)
     app.run(host="0.0.0.0", port=5000)
