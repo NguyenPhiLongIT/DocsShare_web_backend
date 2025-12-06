@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.docsshare_web_backend.commons.services.SemanticEmbeddingService;
 import com.docsshare_web_backend.categories.repositories.CategoryRepository;
 import com.docsshare_web_backend.documents.dto.requests.DocumentFilterRequest;
 import com.docsshare_web_backend.documents.dto.requests.DocumentRequest;
@@ -49,7 +50,6 @@ import com.docsshare_web_backend.users.repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.docsshare_web_backend.commons.services.CbirService;
 import com.docsshare_web_backend.commons.services.GoogleDriveService;
-import com.docsshare_web_backend.commons.services.SemanticEmbeddingService; // 🔹 IMPORT MỚI
 import com.docsshare_web_backend.commons.utils.SlugUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -90,7 +90,7 @@ public class DocumentServiceImpl implements DocumentService {
         private ApplicationEventPublisher applicationEventPublisher;
 
         @Autowired
-        private SemanticEmbeddingService semanticEmbeddingService; // 🔹 THÊM DÒNG NÀY
+        private SemanticEmbeddingService semanticEmbeddingService;
 
         private Pageable getPageable(Pageable pageable) {
                 return pageable != null ? pageable : Pageable.unpaged();
@@ -371,12 +371,27 @@ public class DocumentServiceImpl implements DocumentService {
                 }
 
                 // 🔹 TRIGGER SEMANTIC EMBEDDING NGAY SAU KHI TẠO DOCUMENT
+                boolean embeddedOk = false;
                 try {
-                        semanticEmbeddingService.triggerEmbedding(savedDocument.getId());
+                        embeddedOk = semanticEmbeddingService.embedDocument(
+                                savedDocument.getId(),
+                                savedDocument.getTitle(),
+                                savedDocument.getDescription(),      // summary tạm thời dùng description
+                                savedDocument.getDescription(),
+                                savedDocument.getCategory() != null ? savedDocument.getCategory().getId() : null
+                        );
                         log.info("Triggered semantic embedding for document {}", savedDocument.getId());
                 } catch (Exception e) {
                         log.error("Failed to trigger semantic embedding for document {}", savedDocument.getId(), e);
                 }
+
+                // Nếu embed OK thì cập nhật flag trong DB
+                if (embeddedOk) {
+                        savedDocument.setSemanticEmbedded(true);
+                        savedDocument.setSemanticEmbeddedAt(LocalDateTime.now());
+                        savedDocument = documentRepository.save(savedDocument);
+                }
+
 
                 List<CbirService.ImageFeatureResult> imageResults =
                         documentImageService.extractImagesAndFeatures(request.getFile());
