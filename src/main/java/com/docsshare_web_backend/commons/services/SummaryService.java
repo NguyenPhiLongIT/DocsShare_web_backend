@@ -17,7 +17,7 @@ public class SummaryService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public String summarizeFile(MultipartFile file) {
+    public String summarizeFile(MultipartFile file, String mode) {
         String url = apiUrl + "/summarize";
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -25,6 +25,7 @@ public class SummaryService {
     
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
+            body.add("mode", mode);
     
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
     
