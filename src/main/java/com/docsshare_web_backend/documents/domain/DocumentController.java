@@ -210,8 +210,8 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/generateSummary", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, String>> generateDescription(@RequestParam("file") MultipartFile file) {
-        String summary = summaryService.summarizeFile(file);
+    public ResponseEntity<Map<String, String>> generateDescription(@RequestParam("file") MultipartFile file, @RequestParam("mode") String mode) {
+        String summary = summaryService.summarizeFile(file, mode);
         if (summary != null) {
             return ResponseEntity.ok(Map.of("description", summary));
         } else {

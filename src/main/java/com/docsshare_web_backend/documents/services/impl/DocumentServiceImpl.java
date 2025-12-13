@@ -29,6 +29,7 @@ import com.docsshare_web_backend.documents.dto.responses.DocumentResponse;
 import com.docsshare_web_backend.documents.dto.responses.TopDocumentReportResponse;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.documents.enums.DocumentProcessingStatus;
 import com.docsshare_web_backend.documents.filters.DocumentFilter;
 import com.docsshare_web_backend.documents.models.Document;
 import com.docsshare_web_backend.documents.models.DocumentCoAuthor;
@@ -354,8 +355,9 @@ public class DocumentServiceImpl implements DocumentService {
                         .slug(null)
                         .price(request.getPrice())
                         .copyrightPath(request.getCopyrightPath())
-                        .moderationStatus(moderationStatus)
+                        .moderationStatus(moderationStatus)     
                         .isPublic(request.isPublic())
+                        .processingStatus(DocumentProcessingStatus.PENDING)                         
                         .author(author)
                         .category(category)
                         .build();
@@ -367,56 +369,6 @@ public class DocumentServiceImpl implements DocumentService {
                 if (request.getCoAuthor() != null && !request.getCoAuthor().isEmpty()) {
                         for (var coAuthorRequest : request.getCoAuthor()) {
                                 documentCoAuthorService.addCoAuthor(savedDocument.getId(), coAuthorRequest);
-                        }
-                }
-
-                // 🔹 TRIGGER SEMANTIC EMBEDDING NGAY SAU KHI TẠO DOCUMENT
-                boolean embeddedOk = false;
-                try {
-                        embeddedOk = semanticEmbeddingService.embedDocument(
-                                savedDocument.getId(),
-                                savedDocument.getTitle(),
-                                savedDocument.getDescription(),      // summary tạm thời dùng description
-                                savedDocument.getDescription(),
-                                savedDocument.getCategory() != null ? savedDocument.getCategory().getId() : null
-                        );
-                        log.info("Triggered semantic embedding for document {}", savedDocument.getId());
-                } catch (Exception e) {
-                        log.error("Failed to trigger semantic embedding for document {}", savedDocument.getId(), e);
-                }
-
-                // Nếu embed OK thì cập nhật flag trong DB
-                if (embeddedOk) {
-                        savedDocument.setSemanticEmbedded(true);
-                        savedDocument.setSemanticEmbeddedAt(LocalDateTime.now());
-                        savedDocument = documentRepository.save(savedDocument);
-                }
-
-
-                List<CbirService.ImageFeatureResult> imageResults =
-                        documentImageService.extractImagesAndFeatures(request.getFile());
-
-                for (CbirService.ImageFeatureResult img : imageResults) {
-                        try {
-                                List<Double> features = img.getFeatures();
-                                String featuresJson = new ObjectMapper().writeValueAsString(img.getFeatures());
-                                DocumentImage docImage = DocumentImage.builder()
-                                        .document(savedDocument)
-                                        .imagePath(img.getUrl())
-                                        .featureVector(featuresJson)
-                                        .build();
-
-                                DocumentImage savedDocImage = documentImageRepository.save(docImage);
-
-                                documentImageService.pushFeatureToFlask(
-                                        savedDocImage.getId(),
-                                        savedDocImage.getDocument().getId(),
-                                        savedDocImage.getImagePath(),
-                                        features
-                                );
-
-                        } catch (Exception e) {
-                                e.printStackTrace();
                         }
                 }
                 applicationEventPublisher.publishEvent(new DocumentCreatedEvent(this, savedDocument.getId()));
@@ -508,6 +460,12 @@ public class DocumentServiceImpl implements DocumentService {
                         .orElseThrow(() -> new EntityNotFoundException("Document not found with id: " + id));
 
                 String filePath = document.getFilePath();
+
+                List<DocumentImage> images = documentImageRepository.findByDocumentId(document.getId());
+                if (!images.isEmpty()) {
+                        documentImageRepository.deleteAll(images);
+                }
+
                 documentRepository.delete(document);
 
                 boolean stillUsed = documentRepository.existsByFilePath(filePath);

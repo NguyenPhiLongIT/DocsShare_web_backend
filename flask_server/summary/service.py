@@ -27,70 +27,81 @@ def simple_sentence_tokenize(text):
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return [s.strip() for s in sentences if s.strip()]
 
-def preprocess_for_summary(text: str) -> str:
-    # Bỏ ký tự lạ, mã hóa lỗi, xuống dòng quá nhiều
-    text = text.replace("•", " ").replace("  ", " ")
-    text = re.sub(r'\s{2,}', ' ', text)
-    
-    # Xóa câu lặp hoàn toàn
-    lines = [line.strip() for line in text.split("\n") if line.strip()]
-    unique_lines = list(dict.fromkeys(lines))  # preserve order, remove duplicates
-    text = " ".join(unique_lines)
-    
-    return text
+def text_rank_reduce(sentences, keep_ratio):
+    if len(sentences) < 10:
+        return sentences  # tài liệu ngắn không cần giảm
 
-def tfidf_filter(text, ratio=0.3):
-    sentences = simple_sentence_tokenize(clean_text(text))
-    if len(sentences) < 3:
-        return text
+    vectorizer = TfidfVectorizer(min_df=2, max_df=0.85)
+    matrix = vectorizer.fit_transform(sentences)
 
-    vectorizer = TfidfVectorizer()
-    try:
-        sentence_vectors = vectorizer.fit_transform(sentences)
-    except ValueError:
-        return text
+    sim = cosine_similarity(matrix)
+    scores = sim.sum(axis=1)
 
-    sim_matrix = cosine_similarity(sentence_vectors)
-    scores = np.sum(sim_matrix, axis=1)
-    ranked = sorted(((scores[i], s) for i, s in enumerate(sentences)), reverse=True)
+    ranked_ids = np.argsort(-scores)
+    keep_n = max(5, int(len(sentences) * keep_ratio))
 
-    top_k = max(1, int(len(sentences) * ratio))
-    top_sentences = [s for _, s in ranked[:top_k]]
-    return " ".join(top_sentences)
+    selected = [sentences[i] for i in ranked_ids[:keep_n]]
+    selected.sort()  # giữ thứ tự gốc
+
+    return selected
 
 class PhoBERTSummarizer:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base")
         self.model = AutoModel.from_pretrained("vinai/phobert-base").to(device)
+        self.model.eval()
 
-    def get_embeddings(self, sentences):
-        embeddings = []
-        for sentence in sentences:
-            inputs = self.tokenizer(sentence, return_tensors="pt", truncation=True, padding=True, max_length=256).to(device)
+    def get_embeddings(self, sentences, batch_size=2): 
+        all_embeddings = []
+
+        for i in range(0, len(sentences), batch_size):
+            batch = sentences[i:i+batch_size]
+
+            inputs = self.tokenizer(
+                batch,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=128   
+            ).to(device)
+
             with torch.no_grad():
                 outputs = self.model(**inputs)
-            embeddings.append(outputs.last_hidden_state[:, 0, :].cpu().numpy()[0])
-        return np.array(embeddings)
 
-    def summarize(self, text, ratio=0.3):
-        sentences = simple_sentence_tokenize(clean_text(text))
+            cls_embeds = outputs.last_hidden_state[:, 0, :].cpu().numpy()
+            all_embeddings.append(cls_embeds)
+
+        return np.vstack(all_embeddings)
+
+    def summarize_sentences(self, sentences, ratio):
         if len(sentences) < 3:
-            return text
+            return " ".join(sentences)
 
         embeddings = self.get_embeddings(sentences)
-        sim_matrix = cosine_similarity(embeddings)
-        scores = np.sum(sim_matrix, axis=1)
-        
-        ranked = sorted(((scores[i], i, s) for i, s in enumerate(sentences)), reverse=True)
-        top_ids = sorted([i for _, i, _ in ranked[:max(1, int(len(sentences) * ratio))]])
-        
-        return " ".join([sentences[i] for i in top_ids])
+        sim = cosine_similarity(embeddings)
+        scores = np.sum(sim, axis=1)
+
+        ranked = np.argsort(-scores)
+        keep_n = max(1, int(len(sentences) * ratio))
+
+        idx = sorted(ranked[:keep_n])
+        return " ".join(sentences[i] for i in idx)
 
 phobert_summarizer = PhoBERTSummarizer()
 
-def summarize_text(raw_text):
-    text = extract_text(raw_text)
-    preprocessed = preprocess_for_summary(text)
-    # tfidf_selected = tfidf_filter(preprocessed, ratio=0.3)
-    summary = phobert_summarizer.summarize(preprocessed, ratio=0.15)
+def summarize_text(file_path, mode="medium"):
+    text = extract_text(file_path)
+    raw = clean_text(text)
+    sentences = simple_sentence_tokenize(raw)
+    if mode == "short":
+        keep_ratio = 0.4
+        pho_ratio = 0.10
+    elif mode == "long":
+        keep_ratio = 0.7
+        pho_ratio = 0.3
+    else:  # medium
+        keep_ratio = 0.5
+        pho_ratio = 0.2
+    sentences = text_rank_reduce(sentences, keep_ratio)
+    summary = phobert_summarizer.summarize_sentences(sentences, pho_ratio)
     return summary

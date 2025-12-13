@@ -162,14 +162,26 @@ def summarize_api():
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"error": "Empty filename"}), 400
+    
+    mode = request.form.get("mode", "medium").lower().strip()
+    if mode not in ["short", "medium", "long"]:
+        mode = "medium"
 
     ext = os.path.splitext(file.filename)[-1] or ".pdf"
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-        file.save(tmp.name)
-        summary = summarize_text(tmp.name)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            file.save(tmp.name)
 
-    return jsonify({"description": summary})
+            summary = summarize_text(tmp.name, mode=mode)
+
+        return jsonify({
+            "description": summary,
+            "mode": mode
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/extract-text", methods=["POST"])
@@ -328,4 +340,10 @@ def search_image_api():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False,
+        use_reloader=False,
+        threaded=True
+    )

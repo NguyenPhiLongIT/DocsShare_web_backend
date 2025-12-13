@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -114,6 +115,63 @@ public class CbirService {
             restTemplate.postForEntity(url, request, Void.class);
         } catch (Exception e) {
             System.err.println("Failed to push feature to Flask: " + e.getMessage());
+        }
+    }
+
+    public List<ImageFeatureResult> extractImagesAndFeatures(File file) {
+        String url = apiUrl + "/extract-images";
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new FileSystemResource(file));
+
+            HttpEntity<MultiValueMap<String, Object>> request =
+                    new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response =
+                    restTemplate.postForEntity(url, request, Map.class);
+
+            if (response.getBody() == null || !response.getBody().containsKey("images")) {
+                return List.of();
+            }
+
+            List<Map<String, Object>> images =
+                    (List<Map<String, Object>>) response.getBody().get("images");
+
+            List<ImageFeatureResult> results = new ArrayList<>();
+
+            for (Map<String, Object> img : images) {
+                String filename = (String) img.get("filename");
+                String base64Data = (String) img.get("image_base64");
+                byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+
+                MultipartFile imageFile = new InMemoryMultipartFile(
+                        filename,
+                        filename,
+                        "image/jpeg",
+                        imageBytes
+                );
+
+                String uploadedUrl =
+                        googleDriveService.uploadFile(imageFile, "DocsShareImages");
+
+                List<Double> features = (List<Double>) img.get("features");
+
+                results.add(new ImageFeatureResult(filename, uploadedUrl, features));
+            }
+
+            return results;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        } finally {
+            try {
+                file.delete(); // cleanup file temp
+            } catch (Exception ignored) {}
         }
     }
 
