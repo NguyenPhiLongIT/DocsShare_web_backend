@@ -4,6 +4,7 @@ import com.docsshare_web_backend.users.models.User;
 import com.docsshare_web_backend.categories.models.Category;
 import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.docsshare_web_backend.documents.enums.DocumentModerationStatus;
+import com.docsshare_web_backend.documents.enums.DocumentProcessingStatus;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,6 +46,9 @@ public class Document {
     private String rejectedReason;
     @Column(nullable = false)
     private boolean isPublic;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DocumentProcessingStatus processingStatus = DocumentProcessingStatus.PENDING;
     @Builder.Default
     @Column(nullable = false)
     private boolean semanticEmbedded = false;

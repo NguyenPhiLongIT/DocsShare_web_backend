@@ -1,5 +1,6 @@
 package com.docsshare_web_backend.commons.services;
 
+import com.docsshare_web_backend.documents.enums.DocumentFileType;
 import com.google.api.client.http.FileContent;
 import com.google.api.client.http.InputStreamContent;
 import com.google.api.services.drive.Drive;
@@ -145,6 +146,32 @@ public class GoogleDriveService {
             default: return "application/octet-stream";
         }
     }
+
+    public void downloadFile(String fileId, OutputStream outputStream) throws IOException {
+        driveService.files()
+            .get(fileId)
+            .executeMediaAndDownloadTo(outputStream);
+    }
     
+    public java.io.File downloadToTempFile(String driveUrlOrId, DocumentFileType fileType) {
+        try {
+            java.io.File tempFile = java.io.File.createTempFile(
+                "doc_" + System.currentTimeMillis(),
+                "." + fileType.name().toLowerCase()
+            );
     
+            // Nếu input là URL view, extract fileId
+            String fileId = extractFileIdFromUrl(driveUrlOrId);
+    
+            try (OutputStream os = new FileOutputStream(tempFile)) {
+                downloadFile(fileId, os);
+            }
+    
+            return tempFile;
+    
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download file from Google Drive", e);
+        }
+    }
+
 }
