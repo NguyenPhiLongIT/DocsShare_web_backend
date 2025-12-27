@@ -301,11 +301,14 @@ def embed_doc_internal_endpoint():
 
 def search_core(
     query: str,
-    top_k_topics: int = None,          # sẽ dùng làm top_k_keywords
-    top_k_docs_per_topic: int = None,  # số doc trả về
-    sim_threshold: float = None,
+    top_k_topics: int = None,
+    top_k_docs_per_topic: int = None,
+    sim_threshold: float = None,  # giữ param để khỏi sửa nơi gọi, nhưng sẽ IGNORE
 ):
-
+    # ✅ HARD-CODE thresholds
+    STRICT_THRESHOLD = 0.7   # kết quả chính
+    BASE_THRESHOLD   = 0.3   # pool gợi ý (hành vi cũ)
+    SUGGEST_K_DEFAULT = 10
 
     if not query:
         return {"query": query, "results": [], "error": "EMPTY_QUERY"}
@@ -313,10 +316,6 @@ def search_core(
     query_clean = str(query).strip()
     if not query_clean:
         return {"query": query, "results": [], "error": "EMPTY_QUERY"}
-
-    # Tham số mặc định từ config
-    if sim_threshold is None:
-        sim_threshold = float(config.get("sim_threshold_default", 0.3))
 
     if top_k_docs_per_topic is None:
         top_k_docs = int(config.get("top_k_docs_default", 10))
@@ -328,23 +327,21 @@ def search_core(
     else:
         top_k_keywords = int(top_k_topics)
 
+    suggest_k = int(config.get("suggest_k_default", SUGGEST_K_DEFAULT))
+
     w_full = float(config.get("w_full_default", 0.6))
     w_local = float(config.get("w_local_default", 0.4))
 
-    print("\n🔍 ====== SMART SEARCH (notebook logic) ======")
+    print("\n🔍 ====== SMART SEARCH (HARD strict=0.7) ======")
     print(f"   Query: '{query_clean}'")
-    print(
-        f"   sim_threshold = {sim_threshold}, top_k_keywords = {top_k_keywords}, top_k_docs = {top_k_docs}"
-    )
+    print(f"   STRICT_THRESHOLD = {STRICT_THRESHOLD}, BASE_THRESHOLD = {BASE_THRESHOLD}")
+    print(f"   top_k_keywords = {top_k_keywords}, top_k_docs = {top_k_docs}, suggest_k = {suggest_k}")
     print(f"   w_full = {w_full}, w_local = {w_local}")
 
-    # 1) Embed query
+    # 1) Embed query (normalize_embeddings=True already)
     q_vec = embed_query([query_clean])  # (1, dim)
-    print(
-        f"   ✅ Query vector shape: {q_vec.shape}, norm={np.linalg.norm(q_vec):.4f}"
-    )
 
-    # 2) Đoán category bằng keyword (kw_index)
+    # 2) Predict category by keyword
     D_kw, I_kw = kw_index.search(q_vec, top_k_keywords)
     best_pos = int(I_kw[0][0])
     best_sim = float(D_kw[0][0])
@@ -353,42 +350,41 @@ def search_core(
     cat_id = int(best_kw_row["category_id"])
     cat_name = str(best_kw_row["category_name"])
     kw_text = str(best_kw_row["keyword"])
-
-    print("\n🎯 Dự đoán category theo keyword:")
+    print("\n🎯 KEYWORD MATCH (cao nhất):")
     print(f"   - category_id   : {cat_id}")
     print(f"   - category_name : {cat_name}")
-    print(f"   - keyword match : \"{kw_text}\"")
-    print(f"   - keyword_sim   : {best_sim:.3f}")
+    print(f"   - keyword       : \"{kw_text}\"")
+    print(f"   - keyword_sim   : {best_sim:.4f}")
 
-    # 3) Lấy tất cả n-gram thuộc category đó
+
+    # 3) Get all chunks in category
     mask = cat_ids_arr == cat_id
     if not mask.any():
-        print("\n⚠ Category này chưa có n-gram nào (không có tài liệu).")
         return {
             "query": query_clean,
-            "sim_threshold": sim_threshold,
-            "results": [
-                {
-                    "topic_id": cat_id,
-                    "topic_name": cat_name,
-                    "keyword_match": kw_text,
-                    "topic_similarity": best_sim,
-                    "documents": [],
-                }
-            ],
+            "strict_threshold": STRICT_THRESHOLD,
+            "base_threshold": BASE_THRESHOLD,
+            "results": [{
+                "topic_id": cat_id,
+                "topic_name": cat_name,
+                "keyword_match": kw_text,
+                "topic_similarity": best_sim,
+                "documents": [],
+                "suggestions": [],
+                "message": "Category chưa có tài liệu."
+            }]
         }
 
-    vecs_cat = doc_vecs[mask].astype("float32")      # (N_chunk, dim)
-    doc_ids_cat = doc_ids_arr[mask].astype("int64")  # (N_chunk,)
-    print(f"   📄 Số chunk (n-gram) trong category {cat_id}: {vecs_cat.shape[0]}")
+    vecs_cat = doc_vecs[mask].astype("float32")
+    doc_ids_cat = doc_ids_arr[mask].astype("int64")
 
-    # 4) Tính similarity query - từng n-gram
-    sim_q = (vecs_cat @ q_vec.T).reshape(-1)  # (N_chunk,)
+    # 4) Similarity query vs chunk
+    sim_q = (vecs_cat @ q_vec.T).reshape(-1)
 
-    # 5) Gộp theo doc_id, chỉ giữ max_sim_q
+    # 5) Pool theo BASE_THRESHOLD (0.3)
     doc_scores: dict[int, dict] = {}
     for chunk_sim_q, doc_id_val in zip(sim_q, doc_ids_cat):
-        if float(chunk_sim_q) < sim_threshold:
+        if float(chunk_sim_q) < BASE_THRESHOLD:
             continue
 
         doc_id_int = int(doc_id_val)
@@ -401,75 +397,123 @@ def search_core(
                 doc_scores[doc_id_int]["max_sim_q"] = val
 
     if not doc_scores:
-        print("\n  (Không có doc nào đủ similarity theo threshold)")
         return {
             "query": query_clean,
-            "sim_threshold": sim_threshold,
-            "results": [
-                {
-                    "topic_id": cat_id,
-                    "topic_name": cat_name,
-                    "keyword_match": kw_text,
-                    "topic_similarity": best_sim,
-                    "documents": [],
-                }
-            ],
-        }
-
-    # 6) Thêm sim_full và sim_doc_dense
-    for doc_id_int, vals in doc_scores.items():
-        doc_full_vec = doc_full_map.get(doc_id_int)
-        if doc_full_vec is None:
-            sim_full = vals["max_sim_q"]  # fallback
-        else:
-            sim_full = float(doc_full_vec @ q_vec.T)  # cosine
-
-        vals["sim_full"] = sim_full
-        vals["sim_doc_dense"] = w_full * sim_full + w_local * vals["max_sim_q"]
-
-    # 7) Sắp xếp theo sim_doc_dense
-    sorted_docs = sorted(
-        doc_scores.items(), key=lambda x: x[1]["sim_doc_dense"], reverse=True
-    )
-
-    # 8) Lấy metadata
-    meta_list = doc_meta.get(str(cat_id)) or doc_meta.get(int(cat_id), [])
-    meta_by_id = {int(m["doc_id"]): m for m in meta_list}
-
-    documents = []
-    for doc_id_int, vals in sorted_docs[:top_k_docs]:
-        m = meta_by_id.get(doc_id_int, {})
-        documents.append(
-            {
-                "doc_id": int(doc_id_int),
-                "title": m.get("title", ""),
-                "summary": m.get("summary", m.get("description", "")),
-                "similarity_full": vals["sim_full"],
-                "similarity_ngram": vals["max_sim_q"],
-                "similarity": vals["sim_doc_dense"],
-            }
-        )
-
-    print(f"\n📚 Top {len(documents)} documents trong category {cat_id}:")
-    for i, d in enumerate(documents[:5], 1):
-        print(
-            f"   {i}. [{d['doc_id']}] {d['title'][:60]}...  (sim={d['similarity']:.3f})"
-        )
-
-    result = {
-        "query": query_clean,
-        "sim_threshold": sim_threshold,
-        "results": [
-            {
+            "strict_threshold": STRICT_THRESHOLD,
+            "base_threshold": BASE_THRESHOLD,
+            "results": [{
                 "topic_id": cat_id,
                 "topic_name": cat_name,
                 "keyword_match": kw_text,
                 "topic_similarity": best_sim,
-                "documents": documents,
-            }
-        ],
+                "documents": [],
+                "suggestions": [],
+                "message": f"Không có tài liệu nào đạt base_threshold={BASE_THRESHOLD}."
+            }]
+        }
+
+    # 6) add sim_full + sim_doc_dense
+    for doc_id_int, vals in doc_scores.items():
+        doc_full_vec = doc_full_map.get(doc_id_int)
+        if doc_full_vec is None:
+            sim_full = vals["max_sim_q"]
+        else:
+            sim_full = float(doc_full_vec @ q_vec.T)
+
+        vals["sim_full"] = sim_full
+        vals["sim_doc_dense"] = w_full * sim_full + w_local * vals["max_sim_q"]
+
+    sorted_docs = sorted(doc_scores.items(), key=lambda x: x[1]["sim_doc_dense"], reverse=True)
+
+    meta_list = doc_meta.get(str(cat_id)) or doc_meta.get(int(cat_id), [])
+    meta_by_id = {int(m["doc_id"]): m for m in meta_list}
+
+    def build_doc(doc_id_int: int, vals: dict):
+        m = meta_by_id.get(int(doc_id_int), {})
+        return {
+            "doc_id": int(doc_id_int),
+            "title": m.get("title", ""),
+            "summary": m.get("summary", m.get("description", "")),
+            "similarity_full": float(vals["sim_full"]),
+            "similarity_ngram": float(vals["max_sim_q"]),
+            "similarity": float(vals["sim_doc_dense"]),
+        }
+
+    # 7) Strict docs >= 0.7
+    strict_docs = []
+    for doc_id_int, vals in sorted_docs:
+        if float(vals["sim_doc_dense"]) >= STRICT_THRESHOLD:
+            strict_docs.append(build_doc(doc_id_int, vals))
+        if len(strict_docs) >= top_k_docs:
+            break
+
+    # 8) Suggestions: top gần nhất từ pool 0.3 (loại trùng)
+    strict_ids = {d["doc_id"] for d in strict_docs}
+    suggestions = []
+    for doc_id_int, vals in sorted_docs:
+        if int(doc_id_int) in strict_ids:
+            continue
+        suggestions.append(build_doc(doc_id_int, vals))
+        if len(suggestions) >= suggest_k:
+            break
+
+    # ✅ LOG: Top docs theo pool (>= BASE_THRESHOLD)
+    if sorted_docs:
+        top_doc_id, top_vals = sorted_docs[0]
+        print("\n🏆 TOP DOC trong pool (>= BASE_THRESHOLD):")
+        print(f"   - doc_id        : {int(top_doc_id)}")
+        print(f"   - sim_doc_dense : {float(top_vals['sim_doc_dense']):.4f}")
+        print(f"   - sim_full      : {float(top_vals['sim_full']):.4f}")
+        print(f"   - sim_ngram     : {float(top_vals['max_sim_q']):.4f}")
+
+
+    if suggestions:
+        print("\n📌 DANH SÁCH TẤT CẢ DOC ĐỀ XUẤT (title + similarity):")
+        for i, d in enumerate(suggestions, 1):
+            title = (d.get("title") or "").strip()
+            if not title:
+                title = "(no title)"
+            print(
+                f"   {i:03d}. doc_id={d['doc_id']} | sim={d['similarity']:.4f} "
+                f"(full={d['similarity_full']:.4f}, ngram={d['similarity_ngram']:.4f}) "
+                f"| title={title}"
+            )
+    else:
+        print("\n📌 DANH SÁCH DOC ĐỀ XUẤT: rỗng")
+
+
+    if strict_docs:
+        return {
+            "query": query_clean,
+            "strict_threshold": STRICT_THRESHOLD,
+            "base_threshold": BASE_THRESHOLD,
+            "results": [{
+                "topic_id": cat_id,
+                "topic_name": cat_name,
+                "keyword_match": kw_text,
+                "topic_similarity": best_sim,
+                "documents": strict_docs,
+                "suggestions": [],
+                "message": None
+            }]
+        }
+
+    # no strict results -> message + suggestions
+    return {
+        "query": query_clean,
+        "strict_threshold": STRICT_THRESHOLD,
+        "base_threshold": BASE_THRESHOLD,
+        "results": [{
+            "topic_id": cat_id,
+            "topic_name": cat_name,
+            "keyword_match": kw_text,
+            "topic_similarity": best_sim,
+            "documents": [],
+            "suggestions": suggestions,
+            "message": f"Không tìm thấy tài liệu có độ chính xác tin cậy. Hệ thống đề xuất cho bạn các tài liệu."
+        }]
     }
-    return result
+
 
 
 @semantic_bp.route("/semantic/search", methods=["GET", "POST"])
@@ -524,7 +568,6 @@ def semantic_search_endpoint():
             query=query,
             top_k_topics=top_k_topics,
             top_k_docs_per_topic=top_k_docs_per_topic,
-            sim_threshold=sim_threshold,
         )
         print(f"✅ Search completed: {len(res.get('results', []))} topics found")
         return jsonify(res)

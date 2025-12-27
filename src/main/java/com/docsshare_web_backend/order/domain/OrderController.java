@@ -4,9 +4,11 @@ import com.docsshare_web_backend.commons.services.ExcelExportService;
 import com.docsshare_web_backend.order.dto.requests.OrderFilterRequest;
 import com.docsshare_web_backend.order.dto.requests.OrderRequest;
 import com.docsshare_web_backend.order.dto.responses.OrderResponse;
+import com.docsshare_web_backend.order.dto.responses.RevenueStatisticResponse;
 import com.docsshare_web_backend.order.dto.responses.TopUserOrderCompletedResponse;
 import com.docsshare_web_backend.order.enums.OrderStatus;
 import com.docsshare_web_backend.order.services.OrderService;
+import com.docsshare_web_backend.order.dto.responses.TopSellerUserResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +16,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -89,7 +93,7 @@ public class OrderController {
                 .body(orderService.createOrder(orderRequest));
     }
 
-//    @PutMapping("/{orderId}/update")
+    //    @PutMapping("/{orderId}/update")
 //    public ResponseEntity<OrderResponse> updateDocument(
 //            @PathVariable long documentId,
 //            @RequestBody OrderRequest request) {
@@ -98,7 +102,7 @@ public class OrderController {
 //    }
 //
     @PutMapping("/{orderId}/updateStatus")
-    public ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable long orderId, OrderStatus status){
+    public ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable long orderId, OrderStatus status) {
         log.debug("[OrderController] Update moderationStatus in Order with id {}", orderId);
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }
@@ -121,14 +125,13 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @GetMapping ("/author/{userId}")
+    @GetMapping("/author/{userId}")
     public ResponseEntity<Page<OrderResponse>> getOrderByauthorId(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "desc") String sort
-    )
-    {
+    ) {
         log.debug("[OrderController] Get orders for author id {}", userId);
 
         // Tạo đối tượng Pageable
@@ -158,6 +161,7 @@ public class OrderController {
         boolean result = orderService.hasAccessToDocument(userId, documentId);
         return ResponseEntity.ok(result);
     }
+
     @GetMapping("/top-users-completed-orders")
     public ResponseEntity<List<TopUserOrderCompletedResponse>> getTopUsersWithCompletedOrders(
             @RequestParam("fromDate") LocalDate fromDate,
@@ -167,5 +171,81 @@ public class OrderController {
         List<TopUserOrderCompletedResponse> result = orderService.getTopUsersWithCompletedOrders(fromDate, toDate, top);
         return ResponseEntity.ok(result);
     }
-}
 
+    @GetMapping("/top-seller-users")
+    public List<TopSellerUserResponse> getTopSellerUsers(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fromDate,
+
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate toDate,
+
+            @RequestParam int top
+    ) {
+        return orderService.getTopSellerUsers(fromDate, toDate, top);
+    }
+
+    @GetMapping("/revenue/summary")
+    public BigDecimal getRevenueSummary(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate from,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate to
+    ) {
+        return orderService.getTotalRevenue(from, to);
+    }
+
+    @GetMapping("/revenue/by-weekday")
+    public List<RevenueStatisticResponse> getRevenueByWeekday(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate from,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate to
+    ) {
+        return orderService.getRevenueByWeekday(from, to);
+    }
+
+    @GetMapping("/revenue/by-month")
+    public List<RevenueStatisticResponse> getRevenueByMonth(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate from,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate to
+    ) {
+        return orderService.getRevenueByMonth(from, to);
+    }
+
+
+
+
+
+    @GetMapping("/revenue/by-year")
+    public List<RevenueStatisticResponse> getRevenueByYear(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate from,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate to
+    ) {
+        return orderService.getRevenueByYear(from, to);
+    }
+
+
+
+
+
+
+
+
+}

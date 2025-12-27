@@ -13,7 +13,9 @@ import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,5 +66,89 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         LIMIT :limit
         """, nativeQuery = true)
     List<Object[]> findTopUsersWithCompletedOrders(@Param("from") LocalDate from, @Param("to") LocalDate to, @Param("limit") int top);
+
+
+    @Query(value = """
+    SELECT
+        d.author_id AS userId,
+        u.name AS userName,
+        COUNT(od.id) AS soldOrders
+    FROM orders o
+    JOIN order_detail od ON o.id = od.order_id
+    JOIN document d ON od.document_id = d.id
+    JOIN user u ON d.author_id = u.id
+    WHERE o.status = 'COMPLETED'
+      AND o.updated_at BETWEEN :from AND :to
+    GROUP BY d.author_id, u.name
+    ORDER BY soldOrders DESC
+    LIMIT :limit
+    """, nativeQuery = true)
+    List<Object[]> findTopSellerUsers(
+            @Param("from") LocalDateTime from,
+            @Param("to")   LocalDateTime to,
+            @Param("limit") int top
+    );
+
+    @Query(value = """
+    SELECT COALESCE(SUM(od.price * o.commission_rate), 0)
+    FROM orders o
+    JOIN order_detail od ON o.id = od.order_id
+    WHERE o.status = 'COMPLETED'
+      AND o.updated_at BETWEEN :from AND :to
+    """, nativeQuery = true)
+    BigDecimal getTotalRevenue(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    @Query(value = """
+    SELECT 
+        DAYOFWEEK(o.updated_at) AS dayOfWeek,
+        SUM(od.price * o.commission_rate) AS revenue
+    FROM orders o
+    JOIN order_detail od ON o.id = od.order_id
+    WHERE o.status = 'COMPLETED'
+      AND o.updated_at BETWEEN :from AND :to
+    GROUP BY DAYOFWEEK(o.updated_at)
+    ORDER BY dayOfWeek
+    """, nativeQuery = true)
+    List<Object[]> getRevenueByDayOfWeek(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    @Query(value = """
+    SELECT 
+        MONTH(o.updated_at) AS month,
+        SUM(od.price * o.commission_rate) AS revenue
+    FROM orders o
+    JOIN order_detail od ON o.id = od.order_id
+    WHERE o.status = 'COMPLETED'
+      AND o.updated_at BETWEEN :from AND :to
+    GROUP BY MONTH(o.updated_at)
+    ORDER BY month
+    """, nativeQuery = true)
+    List<Object[]> getRevenueByMonth(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+
+    @Query(value = """
+    SELECT 
+        YEAR(o.updated_at) AS year,
+        SUM(od.price * o.commission_rate) AS revenue
+    FROM orders o
+    JOIN order_detail od ON o.id = od.order_id
+    WHERE o.status = 'COMPLETED'
+      AND o.updated_at BETWEEN :from AND :to
+    GROUP BY YEAR(o.updated_at)
+    ORDER BY year
+    """, nativeQuery = true)
+    List<Object[]> getRevenueByYear(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
 
 }
