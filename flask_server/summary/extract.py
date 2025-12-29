@@ -94,38 +94,40 @@ def extract_text(file_path):
     return filter_excluded_blocks(raw_text)
 
 
-def extract_first_lines_pdf(file_path, n=5):
-    lines = []
+def extract_first_sentences_pdf(file_path, n=5):
+    full_text = []
 
     with fitz.open(file_path) as doc:
         for page in doc:
             text = page.get_text("text")
             if text:
-                for line in text.split("\n"):
-                    line = line.strip()
-                    if line:
-                        lines.append(line)
-                        if len(lines) >= n:
-                            return " ".join(lines)
-    return " ".join(lines)
+                full_text.append(text.strip())
 
-def extract_first_lines_docx(file_path, n=5):
-    lines = []
+    full_text = " ".join(full_text)
+
+    full_text = re.sub(r'\s+', ' ', full_text)
+
+    sentences = re.split(r'(?<=[.!?])\s+', full_text)
+
+    return " ".join(sentences[:n])
+
+def extract_first_sentences_docx(file_path, n=5):
     doc = Document(file_path)
 
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if text:
-            lines.append(text)
-            if len(lines) >= n:
-                return " ".join(lines)
+    full_text = " ".join(
+        para.text.strip()
+        for para in doc.paragraphs
+        if para.text.strip()
+    )
 
-    return " ".join(lines)
+    sentences = re.split(r'(?<=[.!?])\s+', full_text)
+
+    return " ".join(sentences[:n])
 
 def extract_n_sentences(file_path):
     if file_path.lower().endswith(".pdf"):
-        return extract_first_lines_pdf(file_path, 10)
+        return extract_first_sentences_pdf(file_path, 5)
     elif file_path.lower().endswith(".docx"):
-        return extract_first_lines_docx(file_path, 10)
+        return extract_first_sentences_docx(file_path, 5)
     else:
         raise ValueError("Unsupported file type")
